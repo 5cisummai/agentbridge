@@ -1,0 +1,38 @@
+[package]
+name = "agentbridge-runner"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+description = "agentbridge device runner: PTY threads, profiles, outbound WSS to gateway"
+license = "MIT"
+
+[[bin]]
+name = "agentbridge"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive", "env"] }
+directories = "6.0"
+portable-pty = "0.9"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.43", features = ["full"] }
+tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.11", features = ["v4", "serde"] }
+futures-util = { version = "0.3", features = ["sink"] }
+url = "2.5"
+opentelemetry = "0.27"
+opentelemetry-otlp = { version = "0.27", features = ["http-proto", "reqwest-rustls"] }
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+tracing-opentelemetry = "0.28"
+
+[dev-dependencies]
+tempfile = "3.14"
+wiremock = "0.6"
+tokio-test = "0.4"

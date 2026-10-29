@@ -1,0 +1,45 @@
+{
+  "name": "@agentbridge/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config ./src/auth.ts --output ./src/db/auth-schema.ts",
+    "mock-runner": "tsx scripts/mock-runner.ts"
+  },
+  "dependencies": {
+    "@better-auth/cimd": "^1.7.1",
+    "@better-auth/drizzle-adapter": "^1.7.1",
+    "@better-auth/mcp": "^1.7.1",
+    "@better-auth/oauth-provider": "^1.7.1",
+    "@hono/node-server": "^1.14.4",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.57.2",
+    "@opentelemetry/sdk-node": "^0.57.2",
+    "better-auth": "^1.7.1",
+    "drizzle-orm": "^0.44.2",
+    "hono": "^4.7.10",
+    "postgres": "^3.4.7",
+    "ws": "^8.18.2",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/ws": "^8.18.1",
+    "drizzle-kit": "^0.31.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

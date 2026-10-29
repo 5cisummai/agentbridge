@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+target/
+
+# Environment (never commit secrets)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Gateway Drizzle local meta
+server/drizzle/meta/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

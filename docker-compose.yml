@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agentbridge
+      POSTGRES_PASSWORD: agentbridge
+      POSTGRES_DB: agentbridge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentbridge"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8787:8787"
+    environment:
+      DATABASE_URL: postgres://agentbridge:agentbridge@postgres:5432/agentbridge
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-secret-change-in-production-min-32-chars}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:8787}
+      MCP_RESOURCE: ${MCP_RESOURCE:-http://localhost:8787/mcp}
+      PORT: "8787"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
