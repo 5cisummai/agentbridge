@@ -1,0 +1,29 @@
+# Dependencies and builds
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+target/
+**/target/
+coverage/
+**/coverage/
+
+# Generated / lockfiles (keep diffs intentional)
+**/pnpm-lock.yaml
+**/Cargo.lock
+server/drizzle/meta/
+
+# Env and local state
+.env
+.env.*
+!.env.example
+
+# Binary / media
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.pdf
+*.wasm

@@ -44,6 +44,19 @@ export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787
 
 Approve the device at `{gateway}/device`. Full runner docs: [`runner/README.md`](runner/README.md).
 
+## Tooling
+
+From the repo root:
+
+```bash
+pnpm install
+pnpm format          # Prettier write
+pnpm format:check
+pnpm lint            # Oxlint in server/
+```
+
+Gateway-only: `cd server && pnpm lint`. Config lives in [`.prettierrc.json`](.prettierrc.json) and [`server/.oxlintrc.json`](server/.oxlintrc.json).
+
 ## Package note
 
 `server/package.json` sets `"private": true` so the gateway package is not published to npm by accident. Cloning and self-hosting this repo is intentional; publishing `@agentbridge/server` is not.

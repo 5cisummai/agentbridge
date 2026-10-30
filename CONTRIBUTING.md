@@ -8,8 +8,19 @@ Thanks for helping improve agentbridge.
 - Keep PRs focused. Prefer small, reviewable changes over mixed refactors + features.
 - Do not commit secrets, `.env` files, private keys, or real device credentials.
 - Match existing style in the package you touch (`server/` TypeScript, `runner/` Rust).
+- Format from the repo root with Prettier before opening a PR. Lint `server/` with Oxlint.
 
 ## Development setup
+
+### Formatting (repo root)
+
+```bash
+pnpm install
+pnpm format          # write
+pnpm format:check    # CI-style check
+```
+
+Config: [`.prettierrc.json`](.prettierrc.json), [`.prettierignore`](.prettierignore).
 
 ### Gateway (`server/`)
 
@@ -19,6 +30,7 @@ cp .env.example .env
 docker compose -f ../docker-compose.yml up -d postgres
 pnpm install
 pnpm exec drizzle-kit push
+pnpm lint            # oxlint
 pnpm test
 pnpm dev
 ```

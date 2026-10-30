@@ -12,8 +12,11 @@ cp .env.example .env
 docker compose -f ../docker-compose.yml up -d postgres
 pnpm install   # if pnpm blocks builds: pnpm approve-builds
 pnpm exec drizzle-kit push # fresh local database; review the proposed schema
+pnpm lint      # oxlint (see .oxlintrc.json)
 pnpm dev
 ```
+
+Repo-root Prettier (`pnpm format` from the monorepo root) formats markdown and TypeScript across the tree.
 
 The checked-in schema includes Better Auth tables. After changing auth plugins,
 regenerate their schema and review the migration. This repository has no Drizzle

@@ -1,0 +1,18 @@
+{
+  "name": "agentbridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP relay for remote CLI threads — monorepo root tooling",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm --dir server lint",
+    "lint:fix": "pnpm --dir server lint:fix"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

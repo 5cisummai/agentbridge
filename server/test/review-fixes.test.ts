@@ -285,20 +285,18 @@ describe.skipIf(!url)("review regressions with isolated PostgreSQL", () => {
       );
       expect([claims.aud].flat()).toContain(env.MCP_RESOURCE);
       const clientId = `review-consent-${randomUUID()}`;
-      await db
-        .insert(oauthClient)
-        .values({
-          id: randomUUID(),
-          clientId,
-          name: "Consent test",
-          userId: signup.user.id,
-          tokenEndpointAuthMethod: "none",
-          applicationType: "native",
-          grantTypes: ["authorization_code"],
-          responseTypes: ["code"],
-          scopes: ["openid", "profile"],
-          redirectUris: ["http://127.0.0.1/callback"],
-        });
+      await db.insert(oauthClient).values({
+        id: randomUUID(),
+        clientId,
+        name: "Consent test",
+        userId: signup.user.id,
+        tokenEndpointAuthMethod: "none",
+        applicationType: "native",
+        grantTypes: ["authorization_code"],
+        responseTypes: ["code"],
+        scopes: ["openid", "profile"],
+        redirectUris: ["http://127.0.0.1/callback"],
+      });
       await db
         .insert(oauthClientResource)
         .values({ id: randomUUID(), clientId, resourceId: env.MCP_RESOURCE });
