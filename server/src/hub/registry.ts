@@ -1,3 +1,4 @@
+import { z } from "zod/v4";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { WebSocketServer } from "ws";
@@ -48,12 +49,29 @@ export function createHubRegistry(opts: {
   const connections = new Map<string, DeviceConnection>();
   let wss: WebSocketServer | null = null;
 
-  const markOffline = async (deviceId: string) => {
+  const presenceUpdates = new Map<string, Promise<void>>();
+  const syncPresence = (deviceId: string) => {
+    const previous = presenceUpdates.get(deviceId) ?? Promise.resolve();
+    const next = previous.catch(() => {}).then(async () => {
+      await opts.db.update(devices).set({ online: connections.has(deviceId) })
+        .where(eq(devices.id, deviceId));
+    });
+    presenceUpdates.set(deviceId, next);
+    void next.finally(() => {
+      if (presenceUpdates.get(deviceId) === next) presenceUpdates.delete(deviceId);
+    }).catch(() => {});
+    return next;
+  };
+
+  const markOffline = async (deviceId: string, ws: import("ws").WebSocket) => {
+    const current = connections.get(deviceId);
+    if (current?.ws !== ws) return;
     connections.delete(deviceId);
-    await opts.db
-      .update(devices)
-      .set({ online: false })
-      .where(eq(devices.id, deviceId));
+    for (const pending of current.pending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error("device_offline"));
+    }
+    await syncPresence(deviceId);
   };
 
   const handleNotification = async (
@@ -63,16 +81,15 @@ export function createHubRegistry(opts: {
     if (request.method === "device.heartbeat") {
       await opts.db
         .update(devices)
-        .set({ lastSeenAt: new Date(), online: true })
+        .set({ lastSeenAt: new Date() })
         .where(eq(devices.id, deviceId));
       return;
     }
 
     if (request.method === "thread.event") {
       const parsed = threadEventSchema.safeParse(request.params);
-      if (parsed.success) {
-        await appendThreadEvent(opts.db, opts.env, parsed.data);
-      }
+      if (!parsed.success) throw new Error("invalid_event");
+      await appendThreadEvent(opts.db, opts.env, parsed.data, deviceId);
       return;
     }
 
@@ -91,7 +108,7 @@ export function createHubRegistry(opts: {
     }
 
     const responseParsed = jsonRpcResponseSchema.safeParse(msg);
-    if (responseParsed.success && responseParsed.data.id != null) {
+    if (responseParsed.success && responseParsed.data.id != null && !(msg && typeof msg === "object" && "method" in msg)) {
       const conn = connections.get(deviceId);
       if (!conn) {
         return;
@@ -117,8 +134,12 @@ export function createHubRegistry(opts: {
 
     const request = parsed.data;
 
-    if (request.id === undefined) {
+    try {
       await handleNotification(deviceId, request);
+      if (request.id !== undefined) connections.get(deviceId)?.ws.send(JSON.stringify(jsonRpcResult(request.id, { ok: true })));
+    } catch (error) {
+      if (request.id !== undefined) connections.get(deviceId)?.ws.send(JSON.stringify(jsonRpcError(request.id, -32000, "request_failed")));
+      else console.error("Device notification failed", error);
     }
   };
 
@@ -140,19 +161,20 @@ export function createHubRegistry(opts: {
       async function handleConnection(ws: import("ws").WebSocket) {
         let authenticatedDeviceId: string | null = null;
 
+        let queue = Promise.resolve();
+        ws.on("error", () => ws.close());
         ws.on("message", (data) => {
-          const text = data.toString();
-          if (!authenticatedDeviceId) {
-            void handleHello(text);
-            return;
-          }
-          void handleMessage(authenticatedDeviceId, text);
+          queue = queue.then(async () => {
+            if (!authenticatedDeviceId) await handleHello(data.toString());
+            else if (connections.get(authenticatedDeviceId)?.ws === ws) await handleMessage(authenticatedDeviceId, data.toString());
+          }).catch((error) => {
+            console.error("Device message failed", error);
+            ws.close(1011, "internal_error");
+          });
         });
 
         ws.on("close", () => {
-          if (authenticatedDeviceId) {
-            void markOffline(authenticatedDeviceId);
-          }
+          if (authenticatedDeviceId) void markOffline(authenticatedDeviceId, ws).catch(console.error);
         });
 
         async function handleHello(raw: string) {
@@ -170,14 +192,11 @@ export function createHubRegistry(opts: {
             return;
           }
 
-          const params = parsed.data.params as {
-            device_id?: string;
-            credential?: string;
-            name?: string;
-            capabilities?: Record<string, unknown>;
-          };
-
-          if (!params.device_id || !params.credential) {
+          const hello = z.object({
+            device_id: z.string().uuid(), credential: z.string().min(1),
+            capabilities: z.record(z.string(), z.unknown()).optional(),
+          }).safeParse(parsed.data.params);
+          if (!hello.success) {
             ws.send(
               JSON.stringify(
                 jsonRpcError(parsed.data.id, -32602, "invalid_params"),
@@ -187,6 +206,7 @@ export function createHubRegistry(opts: {
             return;
           }
 
+          const params = hello.data;
           const [device] = await opts.db
             .select()
             .from(devices)
@@ -204,6 +224,13 @@ export function createHubRegistry(opts: {
             return;
           }
 
+          if (ws.readyState !== ws.OPEN) return;
+          const previous = connections.get(device.id);
+          previous?.ws.close(4004, "replaced");
+          for (const pending of previous?.pending.values() ?? []) {
+            clearTimeout(pending.timer);
+            pending.reject(new Error("connection_replaced"));
+          }
           authenticatedDeviceId = device.id;
           connections.set(device.id, {
             deviceId: device.id,
@@ -211,15 +238,16 @@ export function createHubRegistry(opts: {
             pending: new Map(),
           });
 
+          await syncPresence(device.id);
           await opts.db
             .update(devices)
             .set({
-              online: true,
               lastSeenAt: new Date(),
               capabilities: params.capabilities ?? device.capabilities,
             })
             .where(eq(devices.id, device.id));
 
+          if (ws.readyState !== ws.OPEN) return;
           ws.send(
             JSON.stringify(jsonRpcResult(parsed.data.id, { ok: true })),
           );
@@ -259,7 +287,12 @@ export function createHubRegistry(opts: {
         }, timeoutMs);
 
         conn.pending.set(id, { resolve, reject, timer });
-        conn.ws.send(JSON.stringify(request));
+        conn.ws.send(JSON.stringify(request), (error) => {
+          if (!error) return;
+          clearTimeout(timer);
+          conn.pending.delete(id);
+          reject(error);
+        });
       });
     },
   };

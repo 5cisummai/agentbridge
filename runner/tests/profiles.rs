@@ -4,9 +4,8 @@ use agentbridge_runner::profiles::{ProfileUpsert, Profiles};
 #[test]
 fn upsert_rejects_env_over_mcp() {
     let dir = tempfile::tempdir().unwrap();
-    std::env::set_var("AGENTBRIDGE_TEST_DIR", dir.path());
 
-    let db = Db::open().unwrap();
+    let db = Db::open_at(&dir.path().join("test.sqlite")).unwrap();
     let profiles = Profiles::new(db);
     let err = profiles
         .upsert_mcp(ProfileUpsert {
@@ -24,12 +23,13 @@ fn upsert_rejects_env_over_mcp() {
 #[test]
 fn list_strips_secrets() {
     let dir = tempfile::tempdir().unwrap();
-    std::env::set_var("AGENTBRIDGE_TEST_DIR", dir.path());
 
-    let db = Db::open().unwrap();
+    let db = Db::open_at(&dir.path().join("test.sqlite")).unwrap();
     db.seed_default_profiles().unwrap();
     let profiles = Profiles::new(db);
-    profiles.set_env("codex", "OPENAI_API_KEY", "sk-test").unwrap();
+    profiles
+        .set_env("codex", "OPENAI_API_KEY", "sk-test")
+        .unwrap();
     let listed = profiles.list().unwrap();
     let raw = serde_json::to_string(&listed).unwrap();
     assert!(!raw.contains("sk-test"));

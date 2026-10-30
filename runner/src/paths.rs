@@ -35,8 +35,19 @@ pub fn sqlite_file() -> Result<PathBuf> {
 }
 
 pub fn ensure_dirs() -> Result<()> {
-    std::fs::create_dir_all(config_dir()?)?;
-    std::fs::create_dir_all(data_dir()?)?;
+    for dir in [config_dir()?, data_dir()?] {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+            std::fs::DirBuilder::new()
+                .recursive(true)
+                .mode(0o700)
+                .create(&dir)?;
+            std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))?;
+        }
+        #[cfg(not(unix))]
+        std::fs::create_dir_all(&dir)?;
+    }
     Ok(())
 }
 
@@ -50,4 +61,16 @@ pub fn set_private_file_permissions(path: &Path) -> Result<()> {
 #[cfg(not(unix))]
 pub fn set_private_file_permissions(_path: &Path) -> Result<()> {
     Ok(())
+}
+
+pub fn private_file(path: &Path) -> Result<()> {
+    let mut options = std::fs::OpenOptions::new();
+    options.create(true).write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(path)?;
+    set_private_file_permissions(path)
 }

@@ -1,12 +1,12 @@
-pub mod codex;
 pub mod claude;
+pub mod codex;
 pub mod cursor;
 pub mod generic;
 
 use serde_json::{json, Value};
 
-use self::codex::CodexAdapter;
 use self::claude::ClaudeAdapter;
+use self::codex::CodexAdapter;
 use self::cursor::CursorAdapter;
 use self::generic::GenericAdapter;
 
@@ -23,6 +23,9 @@ pub struct ApprovalPrompt {
 pub trait Adapter: Send {
     fn parse_chunk(&mut self, bytes: &[u8]) -> Vec<NormalizedEvent>;
     fn detect_approval(&mut self, bytes: &[u8]) -> Option<ApprovalPrompt>;
+    fn finish(&mut self) -> Vec<NormalizedEvent> {
+        Vec::new()
+    }
     fn format_stdin(&self, input: &str) -> Vec<u8>;
 }
 
@@ -66,8 +69,11 @@ pub fn line_events(text: &str, raw: &str) -> Vec<NormalizedEvent> {
         events.push(NormalizedEvent {
             event_type: "assistant".into(),
             payload: json!({ "text": trimmed }),
-            raw: Some(raw.to_string()),
+            raw: None,
         });
+    }
+    if let Some(first) = events.first_mut() {
+        first.raw = Some(raw.to_string());
     }
     if events.is_empty() && !raw.is_empty() {
         events.push(NormalizedEvent {
@@ -77,4 +83,56 @@ pub fn line_events(text: &str, raw: &str) -> Vec<NormalizedEvent> {
         });
     }
     events
+}
+
+/// Conservative terminal prompt fallback. Structured output never triggers approval.
+#[derive(Default)]
+pub struct PromptDetector {
+    tail: String,
+    emitted: bool,
+}
+impl PromptDetector {
+    pub fn detect(&mut self, bytes: &[u8]) -> Option<ApprovalPrompt> {
+        if self.emitted && self.tail.contains(['\n', '\r']) {
+            self.tail.clear();
+            self.emitted = false;
+        }
+        self.tail.push_str(&String::from_utf8_lossy(bytes));
+        if self.tail.len() > 8192 {
+            self.tail = self
+                .tail
+                .chars()
+                .rev()
+                .take(4096)
+                .collect::<String>()
+                .chars()
+                .rev()
+                .collect();
+        }
+        let clean = strip_ansi(&self.tail).to_lowercase();
+        let line = clean
+            .trim()
+            .rsplit(['\n', '\r'])
+            .next()
+            .unwrap_or("")
+            .trim();
+        let matches = !line.starts_with('{')
+            && (line.contains("[y/n]") || line.contains("(y/n)") || line.contains("[y/n/a]"))
+            && (line.contains("allow")
+                || line.contains("approve")
+                || line.contains("permission")
+                || line.contains("proceed")
+                || line.contains("run command"));
+        if matches && !self.emitted {
+            self.emitted = true;
+            return Some(ApprovalPrompt {
+                prompt: line.to_string(),
+            });
+        }
+        if !matches && bytes.contains(&b'\n') {
+            self.emitted = false;
+            self.tail.clear();
+        }
+        None
+    }
 }

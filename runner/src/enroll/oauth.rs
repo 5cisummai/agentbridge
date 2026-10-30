@@ -7,8 +7,8 @@ use serde_json::json;
 
 use crate::config::Config;
 use crate::enroll::DeviceCredential;
-use crate::RUNNER_OAUTH_CLIENT_ID;
 use crate::DEVICE_CODE_GRANT;
+use crate::RUNNER_OAUTH_CLIENT_ID;
 
 #[derive(Debug, Deserialize)]
 struct DeviceCodeResponse {
@@ -17,6 +17,7 @@ struct DeviceCodeResponse {
     verification_uri: String,
     verification_uri_complete: Option<String>,
     expires_in: u64,
+    #[serde(default = "default_interval")]
     interval: u64,
 }
 
@@ -43,11 +44,13 @@ pub async fn run_enroll(gateway_url: Option<String>, device_name: Option<String>
     let client = Client::new();
     let auth_base = cfg.gateway_url.trim_end_matches('/');
 
+    let resource = format!("{auth_base}/mcp");
     let code_res: DeviceCodeResponse = client
         .post(format!("{auth_base}/api/auth/device/code"))
         .json(&json!({
             "client_id": RUNNER_OAUTH_CLIENT_ID,
-            "scope": "openid profile offline_access"
+            "scope": "openid profile offline_access",
+            "resource": resource
         }))
         .send()
         .await
@@ -58,25 +61,35 @@ pub async fn run_enroll(gateway_url: Option<String>, device_name: Option<String>
         .await
         .context("device code json")?;
 
-    println!("Visit {} and enter code: {}", code_res.verification_uri, code_res.user_code);
+    println!(
+        "Visit {} and enter code: {}",
+        code_res.verification_uri, code_res.user_code
+    );
     if let Some(uri) = code_res.verification_uri_complete {
         println!("Or open: {uri}");
     }
 
-    let interval = Duration::from_secs(code_res.interval.max(5));
+    let mut interval = Duration::from_secs(code_res.interval.max(5));
     let deadline = std::time::Instant::now() + Duration::from_secs(code_res.expires_in);
 
     let access_token = loop {
         if std::time::Instant::now() > deadline {
             anyhow::bail!("device authorization timed out");
         }
-        tokio::time::sleep(interval).await;
+        tokio::time::sleep(
+            interval.min(deadline.saturating_duration_since(std::time::Instant::now())),
+        )
+        .await;
+        if std::time::Instant::now() >= deadline {
+            anyhow::bail!("device authorization timed out");
+        }
         let res = client
             .post(format!("{auth_base}/api/auth/oauth2/token"))
             .form(&[
                 ("grant_type", DEVICE_CODE_GRANT),
                 ("device_code", code_res.device_code.as_str()),
                 ("client_id", RUNNER_OAUTH_CLIENT_ID),
+                ("resource", resource.as_str()),
             ])
             .send()
             .await
@@ -87,7 +100,8 @@ pub async fn run_enroll(gateway_url: Option<String>, device_name: Option<String>
         }
         let status = res.status();
         let text = res.text().await.unwrap_or_default();
-        if text.contains("authorization_pending") || status.as_u16() == 400 {
+        if let Some(next_interval) = retry_interval(&text, interval) {
+            interval = next_interval;
             continue;
         }
         anyhow::bail!("token poll failed: {status} {text}");
@@ -147,5 +161,47 @@ mod hostname {
             .or_else(|_| std::env::var("HOST"))
             .map(OsString::from)
             .map_err(|_| ())
+    }
+}
+
+fn default_interval() -> u64 {
+    5
+}
+
+fn retry_interval(body: &str, interval: Duration) -> Option<Duration> {
+    let value: serde_json::Value = serde_json::from_str(body).ok()?;
+    match value.get("error")?.as_str()? {
+        "authorization_pending" => Some(interval),
+        "slow_down" => Some(interval + Duration::from_secs(5)),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn only_pending_and_slow_down_retry() {
+        let interval = Duration::from_secs(5);
+        assert_eq!(
+            retry_interval(r#"{"error":"authorization_pending"}"#, interval),
+            Some(interval)
+        );
+        assert_eq!(
+            retry_interval(r#"{"error":"slow_down"}"#, interval),
+            Some(Duration::from_secs(10))
+        );
+        for error in [
+            "access_denied",
+            "expired_token",
+            "invalid_client",
+            "invalid_grant",
+        ] {
+            assert_eq!(
+                retry_interval(&json!({"error":error}).to_string(), interval),
+                None
+            );
+        }
+        assert_eq!(retry_interval("bad request", interval), None);
     }
 }

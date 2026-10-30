@@ -18,6 +18,7 @@ impl DeviceCredential {
         if !path.exists() {
             return Ok(None);
         }
+        paths::set_private_file_permissions(&path)?;
         let raw = std::fs::read_to_string(&path)?;
         Ok(Some(serde_json::from_str(&raw)?))
     }
@@ -26,6 +27,7 @@ impl DeviceCredential {
         paths::ensure_dirs()?;
         let path = paths::device_credential_file()?;
         let raw = serde_json::to_string_pretty(self)?;
+        paths::private_file(&path)?;
         std::fs::write(&path, raw)?;
         paths::set_private_file_permissions(&path)?;
         Ok(())

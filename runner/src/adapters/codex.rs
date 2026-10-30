@@ -6,11 +6,29 @@ use super::{generic::GenericAdapter, line_events, Adapter, ApprovalPrompt, Norma
 pub struct CodexAdapter {
     generic: GenericAdapter,
     line_buf: Vec<u8>,
+    prompt: super::PromptDetector,
 }
 
 impl Adapter for CodexAdapter {
     fn parse_chunk(&mut self, bytes: &[u8]) -> Vec<NormalizedEvent> {
+        if self.line_buf.is_empty()
+            && !bytes
+                .iter()
+                .copied()
+                .find(|b| !b.is_ascii_whitespace())
+                .is_some_and(|b| b == b'{')
+        {
+            return self.generic.parse_chunk(bytes);
+        }
         self.line_buf.extend_from_slice(bytes);
+        if self.line_buf.len() > 65536 {
+            self.line_buf.clear();
+            return vec![NormalizedEvent {
+                event_type: "raw".into(),
+                payload: json!({}),
+                raw: Some(String::from_utf8_lossy(bytes).into_owned()),
+            }];
+        }
         let mut events = Vec::new();
         while let Some(pos) = self.line_buf.iter().position(|&b| b == b'\n') {
             let line: Vec<u8> = self.line_buf.drain(..=pos).collect();
@@ -47,17 +65,37 @@ impl Adapter for CodexAdapter {
             }
             events.extend(line_events(&raw, &raw));
         }
+        // Preserve each transport chunk once for interactive/partial JSON output.
+        for event in &mut events {
+            event.raw = None;
+        }
+        events.push(NormalizedEvent {
+            event_type: "raw".into(),
+            payload: json!({}),
+            raw: Some(String::from_utf8_lossy(bytes).into_owned()),
+        });
         events
     }
 
     fn detect_approval(&mut self, bytes: &[u8]) -> Option<ApprovalPrompt> {
-        let s = String::from_utf8_lossy(bytes);
-        if s.contains("approval") || s.contains("Allow running") || s.contains("run command") {
-            return Some(ApprovalPrompt {
-                prompt: s.trim().to_string(),
-            });
+        self.prompt.detect(bytes)
+    }
+
+    fn finish(&mut self) -> Vec<NormalizedEvent> {
+        let bytes = std::mem::take(&mut self.line_buf);
+        let mut events = if bytes.is_empty() {
+            Vec::new()
+        } else {
+            let mut bytes = bytes;
+            bytes.push(b'\n');
+            self.parse_chunk(&bytes)
+        };
+        events.retain(|event| event.event_type != "raw");
+        for event in &mut events {
+            event.raw = None;
         }
-        None
+        events.extend(self.generic.finish());
+        events
     }
 
     fn format_stdin(&self, input: &str) -> Vec<u8> {

@@ -13,10 +13,18 @@ impl Db {
     pub fn open() -> Result<Self> {
         paths::ensure_dirs()?;
         let path = paths::sqlite_file()?;
-        let conn = Connection::open(&path)?;
+        Self::open_at(&path)
+    }
+
+    pub fn open_at(path: &std::path::Path) -> Result<Self> {
+        crate::paths::private_file(path)?;
+        let conn = Connection::open(path)?;
+        let existing_roots: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='allowed_roots')", [], |row| row.get(0))?;
         conn.execute_batch(
             r#"
             PRAGMA foreign_keys = ON;
+            CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
             CREATE TABLE IF NOT EXISTS profiles (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -40,6 +48,13 @@ impl Db {
             );
             "#,
         )?;
+        // Migration: an existing empty allowlist is an explicit deny-all state.
+        if existing_roots {
+            conn.execute(
+                "INSERT OR IGNORE INTO settings VALUES ('roots_initialized', '1')",
+                [],
+            )?;
+        }
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
         })
@@ -50,18 +65,26 @@ impl Db {
     }
 
     pub fn seed_home_if_empty(&self) -> Result<()> {
-        let conn = self.conn.lock().unwrap();
-        let count: i64 =
-            conn.query_row("SELECT COUNT(*) FROM allowed_roots", [], |r| r.get(0))?;
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+        if tx.execute(
+            "INSERT OR IGNORE INTO settings VALUES ('roots_initialized', '1')",
+            [],
+        )? == 0
+        {
+            return Ok(());
+        }
+        let count: i64 = tx.query_row("SELECT COUNT(*) FROM allowed_roots", [], |r| r.get(0))?;
         if count == 0 {
             if let Some(home) = directories::UserDirs::new().map(|d| d.home_dir().to_path_buf()) {
                 let id = uuid::Uuid::new_v4().to_string();
-                conn.execute(
+                tx.execute(
                     "INSERT INTO allowed_roots (id, path, label) VALUES (?1, ?2, ?3)",
                     rusqlite::params![id, home.to_string_lossy(), "Home"],
                 )?;
             }
         }
+        tx.commit()?;
         Ok(())
     }
 

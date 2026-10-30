@@ -1,3 +1,4 @@
+import { decideApproval, deliverApprovalDecisions } from "../services/approvals.js";
 import { McpServer } from "@modelcontextprotocol/server";
 import { and, desc, eq } from "drizzle-orm";
 import * as z from "zod/v4";
@@ -438,19 +439,9 @@ export function registerAgentbridgeTools(
         return mcpTextResult({ error: "approval_not_found" });
       }
       const status = decision === "approve" ? "approved" : "denied";
-      await db
-        .update(approvals)
-        .set({
-          status,
-          resolvedAt: new Date(),
-          note,
-        })
-        .where(eq(approvals.id, approval_id));
-      await hub.call(row.approval.deviceId, "approval.resolve", {
-        approval_id,
-        approved: decision === "approve",
-        note,
-      });
+      const decided = await decideApproval(db, approval_id, status, note);
+      if (!decided) return mcpTextResult({ error: "approval_expired_or_resolved" });
+      await deliverApprovalDecisions(db, hub);
       await writeAudit(db, {
         userId,
         action: `approval.${status}`,

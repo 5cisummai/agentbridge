@@ -63,6 +63,8 @@ export const threads = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    eventSeq: integer("event_seq").notNull().default(0),
+    runnerSeq: integer("runner_seq").notNull().default(-1),
     exitedAt: timestamp("exited_at", { withTimezone: true }),
   },
   (t) => [
@@ -108,6 +110,7 @@ export const approvals = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     note: text("note"),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
   },
   (t) => [
     index("approvals_status_idx").on(t.status),

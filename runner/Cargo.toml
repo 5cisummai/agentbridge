@@ -32,6 +32,9 @@ opentelemetry-otlp = { version = "0.27", features = ["http-proto", "reqwest-rust
 opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
 tracing-opentelemetry = "0.28"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 tempfile = "3.14"
 wiremock = "0.6"

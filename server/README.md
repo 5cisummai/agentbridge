@@ -9,12 +9,57 @@ cd server
 cp .env.example .env
 docker compose -f ../docker-compose.yml up -d postgres
 pnpm install   # if pnpm blocks builds: pnpm approve-builds
-pnpm auth:generate
-pnpm db:generate && pnpm db:migrate
+pnpm exec drizzle-kit push # fresh local database; review the proposed schema
 pnpm dev
 ```
 
-Generate Better Auth tables after changing plugins, then apply Drizzle migrations for gateway tables.
+The checked-in schema includes Better Auth tables. After changing auth plugins,
+regenerate their schema and review the migration. This repository has no Drizzle
+migration journal, so `db:migrate` alone does not bootstrap a database.
+
+## Upgrade from the original schema
+
+Drain active threads and stop the gateway and runners first. Back up the database,
+then apply the reviewed upgrade once to a database containing the original gateway
+and auth tables:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -1 -f drizzle/0001_review_fixes.sql
+```
+
+This adds the event cursor and approval delivery state, aligns auth columns with
+the installed provider, and converts legacy auth array strings into PostgreSQL
+arrays. Restart the upgraded gateway and runners and spawn new threads. Do not
+run this upgrade after pushing the new schema into an existing database: the
+upgrade expects the original text columns. Fresh databases use the schema push
+path above instead.
+
+Old retained events seed the new client cursor, but old event history has no
+trustworthy runner replay watermark because server and runner sequences shared
+one namespace. The migration leaves that watermark at -1. Draining old threads
+avoids ambiguous replays across the protocol upgrade.
+
+## Event delivery
+
+The runner sends ordered `thread.event` JSON-RPC requests with stable runner
+sequence numbers. The gateway validates device ownership, locks the thread row,
+assigns an independent monotonically increasing client cursor, and acknowledges
+only after the transaction commits. Duplicate replays at or below the durable
+runner watermark are acknowledged without adding events, even after retention
+trims the original rows. Gaps in runner sequences are permitted for bounded
+buffer eviction; out-of-order unique events are unsupported.
+
+`approval.submit` persists an approval idempotently before its canonical runner
+`approval_required` event. The ordered event acknowledgement therefore covers the
+submission as well. The gateway generates only timeout events. Resolved decisions
+remain in a database outbox until the runner acknowledges `approval.resolve`;
+the timeout job retries undelivered decisions every 30 seconds. Repeated delivery
+uses the same approval ID and the runner must handle it idempotently.
+
+Replay survives WebSocket reconnects within the runner process. Its pending queue
+is not durable across runner process restarts. The server's event retention and
+the runner's bounded buffer can discard older output; this is not an unlimited
+output archive.
 
 ## Mock runner
 

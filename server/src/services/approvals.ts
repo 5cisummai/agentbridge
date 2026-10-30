@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
+import { and, eq, gt, isNull, ne } from "drizzle-orm";
 import type { Env } from "../env.js";
 import type { GatewayDb } from "../db/client.js";
-import { approvals, threadEvents, threads } from "../db/schema.js";
-import { appendThreadEvent } from "./thread-events.js";
+import { approvals, threads } from "../db/schema.js";
 
 export async function handleApprovalSubmit(
   db: GatewayDb["db"],
@@ -11,13 +10,14 @@ export async function handleApprovalSubmit(
   deviceId: string,
   params: unknown,
 ) {
+  if (!params || typeof params !== "object") return;
   const body = params as {
     thread_id?: string;
     approval_id?: string;
     prompt?: string;
   };
 
-  if (!body.thread_id || !body.prompt) {
+  if (typeof body.thread_id !== "string" || typeof body.prompt !== "string" || !body.prompt) {
     return;
   }
 
@@ -35,30 +35,35 @@ export async function handleApprovalSubmit(
   const expiresAt = new Date(Date.now() + env.APPROVAL_TIMEOUT_MS);
 
   await db.insert(approvals).values({
-    id: approvalId,
-    threadId: body.thread_id,
-    deviceId,
-    prompt: body.prompt,
-    expiresAt,
-    status: "pending",
-  });
+    id: approvalId, threadId: body.thread_id, deviceId,
+    prompt: body.prompt, expiresAt, status: "pending",
+  }).onConflictDoNothing();
+}
 
-  const [lastEvent] = await db
-    .select({ seq: threadEvents.seq })
-    .from(threadEvents)
-    .where(eq(threadEvents.threadId, body.thread_id))
-    .orderBy(desc(threadEvents.seq))
-    .limit(1);
-  const nextSeq = (lastEvent?.seq ?? 0) + 1;
+// Resolved decisions form a durable outbox. Repeated delivery is safe by approval ID.
+export async function deliverApprovalDecisions(
+  db: GatewayDb["db"],
+  hub: { call: (deviceId: string, method: string, params: unknown) => Promise<unknown> },
+) {
+  const rows = await db.select().from(approvals)
+    .where(and(ne(approvals.status, "pending"), isNull(approvals.deliveredAt)));
+  for (const approval of rows) {
+    try {
+      await hub.call(approval.deviceId, "approval.resolve", {
+        approval_id: approval.id, approved: approval.status === "approved",
+        note: approval.status === "timeout" ? "approval_timeout" : approval.note,
+      });
+      await db.update(approvals).set({ deliveredAt: new Date() })
+        .where(eq(approvals.id, approval.id));
+    } catch { /* Retain the decision for the next retry. */ }
+  }
+}
 
-  await appendThreadEvent(db, env, {
-    thread_id: body.thread_id,
-    seq: nextSeq,
-    type: "approval_required",
-    payload: {
-      approval_id: approvalId,
-      prompt: body.prompt,
-      expires_at: expiresAt.toISOString(),
-    },
-  });
+export async function decideApproval(
+  db: GatewayDb["db"], id: string, status: "approved" | "denied", note?: string,
+) {
+  const [row] = await db.update(approvals).set({ status, resolvedAt: new Date(), note })
+    .where(and(eq(approvals.id, id), eq(approvals.status, "pending"), gt(approvals.expiresAt, new Date())))
+    .returning();
+  return row;
 }

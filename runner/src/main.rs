@@ -7,12 +7,12 @@ use tracing_subscriber::EnvFilter;
 use agentbridge_runner::approvals::ApprovalState;
 use agentbridge_runner::config::Config;
 use agentbridge_runner::db::Db;
-use agentbridge_runner::enroll::DeviceCredential;
 use agentbridge_runner::enroll::oauth::run_enroll;
+use agentbridge_runner::enroll::DeviceCredential;
+use agentbridge_runner::otel;
 use agentbridge_runner::profiles::Profiles;
 use agentbridge_runner::threads::ThreadManager;
 use agentbridge_runner::ws;
-use agentbridge_runner::otel;
 
 #[derive(Parser)]
 #[command(name = "agentbridge", about = "agentbridge device runner")]
@@ -51,16 +51,15 @@ enum RootsCmd {
 #[derive(Subcommand)]
 enum ProfilesCmd {
     List,
-    SetEnv {
-        id: String,
-        key_value: String,
-    },
+    SetEnv { id: String, key_value: String },
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive("agentbridge_runner=info".parse()?))
+        .with_env_filter(
+            EnvFilter::from_default_env().add_directive("agentbridge_runner=info".parse()?),
+        )
         .init();
     otel::init_from_env();
 
@@ -75,14 +74,14 @@ async fn main() -> Result<()> {
 }
 
 async fn run_daemon() -> Result<()> {
-    let cred = DeviceCredential::load()?
-        .context("not enrolled: run `agentbridge enroll` first")?;
+    let cred = DeviceCredential::load()?.context("not enrolled: run `agentbridge enroll` first")?;
     let cfg = Config::load()?;
     let db = Db::open()?;
     db.seed_home_if_empty()?;
     db.seed_default_profiles()?;
     let profiles = Arc::new(Profiles::new(db));
-    let (event_tx, event_rx) = tokio::sync::mpsc::unbounded_channel();
+    let event_tx = agentbridge_runner::events::EventSender::default();
+    let event_rx = event_tx.clone();
     let approval_state = Arc::new(ApprovalState::new());
     let threads = Arc::new(ThreadManager::new(
         Arc::clone(&profiles),
@@ -139,9 +138,7 @@ fn cmd_profiles(cmd: ProfilesCmd) -> Result<()> {
             }
         }
         ProfilesCmd::SetEnv { id, key_value } => {
-            let (key, value) = key_value
-                .split_once('=')
-                .context("expected KEY=value")?;
+            let (key, value) = key_value.split_once('=').context("expected KEY=value")?;
             profiles.set_env(&id, key, value)?;
             println!("set {key} on profile {id}");
         }

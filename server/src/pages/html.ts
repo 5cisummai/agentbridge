@@ -34,6 +34,7 @@ export function signInPage(baseUrl: string) {
   document.getElementById("signin").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const query = new URLSearchParams(location.search);
     const res = await fetch(base + "/api/auth/sign-in/email", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -41,14 +42,16 @@ export function signInPage(baseUrl: string) {
       body: JSON.stringify({
         email: fd.get("email"),
         password: fd.get("password"),
+        ...(query.has("sig") ? { oauth_query: location.search.slice(1) } : {}),
       }),
     });
     if (!res.ok) {
       document.getElementById("err").textContent = "Sign in failed";
       return;
     }
-    const redirect = new URLSearchParams(location.search).get("redirect");
-    location.href = redirect || "/";
+    const data = await res.json();
+    const redirect = query.get("redirect");
+    location.href = data.url || (redirect && redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/");
   });
 </script>`,
   );
@@ -58,7 +61,24 @@ export function consentPage() {
   return layout(
     "Consent",
     `<p>Authorize this MCP client to access agentbridge on your account.</p>
-<p><a href="/api/auth/oauth2/authorize">Continue authorization</a></p>`,
+<button id="accept">Authorize</button><button id="deny">Deny</button>
+<p class="error" id="err"></p>
+<script type="module">
+  async function consent(accept) {
+    try {
+      const res = await fetch("/api/auth/oauth2/consent", {
+        method: "POST", credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ accept, oauth_query: location.search.slice(1) }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error("Consent failed. Please sign in and try again.");
+      location.href = data.url;
+    } catch (err) { document.getElementById("err").textContent = err.message; }
+  }
+  document.getElementById("accept").onclick = () => consent(true);
+  document.getElementById("deny").onclick = () => consent(false);
+</script>`,
   );
 }
 

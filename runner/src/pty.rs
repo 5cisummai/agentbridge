@@ -1,12 +1,33 @@
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 use std::thread;
+
+#[derive(Clone)]
+pub struct PtyKiller(
+    Arc<Mutex<Box<dyn portable_pty::ChildKiller + Send + Sync>>>,
+    Option<u32>,
+);
+impl PtyKiller {
+    pub fn kill(&self) -> Result<()> {
+        #[cfg(unix)]
+        if let Some(pid) = self.1 {
+            // PTY children start a new session/process group. Kill that group,
+            // including shells and descendants that ignore terminal interrupts.
+            if unsafe { libc::kill(-(pid as i32), libc::SIGKILL) } == 0 {
+                return Ok(());
+            }
+        }
+        self.0.lock().unwrap().kill().context("kill child")
+    }
+}
 
 use anyhow::{Context, Result};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 
 pub struct PtySession {
+    killer: PtyKiller,
     writer_tx: mpsc::Sender<Vec<u8>>,
     reader_done: mpsc::Receiver<()>,
     child_wait: thread::JoinHandle<Result<i32>>,
@@ -39,6 +60,10 @@ impl PtySession {
         }
 
         let child = pair.slave.spawn_command(cmd).context("spawn_command")?;
+        let killer = PtyKiller(
+            Arc::new(Mutex::new(child.clone_killer())),
+            child.process_id(),
+        );
         drop(pair.slave);
 
         let mut reader = pair.master.try_clone_reader().context("clone reader")?;
@@ -59,6 +84,7 @@ impl PtySession {
                     Err(_) => break,
                 }
             }
+            on_output(Vec::new());
             let _ = done_tx.send(());
         });
 
@@ -77,8 +103,8 @@ impl PtySession {
             Ok(status.exit_code() as i32)
         });
 
-
         Ok(Self {
+            killer,
             writer_tx,
             reader_done: done_rx,
             child_wait,
@@ -91,13 +117,17 @@ impl PtySession {
             .map_err(|_| anyhow::anyhow!("pty writer closed"))
     }
 
-    pub fn kill(&self) -> Result<()> {
-        let _ = self.write_stdin(b"\x03".to_vec());
-        Ok(())
+    pub fn killer(&self) -> PtyKiller {
+        self.killer.clone()
+    }
+    pub fn has_exited(&self) -> bool {
+        self.child_wait.is_finished()
     }
 
     pub fn wait_exit(self) -> Result<i32> {
-        let _ = self.reader_done.recv();
+        let _ = self
+            .reader_done
+            .recv_timeout(std::time::Duration::from_secs(2));
         self.child_wait.join().unwrap_or(Ok(-1))
     }
 }

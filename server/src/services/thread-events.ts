@@ -1,46 +1,41 @@
-import { and, asc, count, eq, gt } from "drizzle-orm";
+import { and, asc, count, eq, gt, sql } from "drizzle-orm";
 import type { Env } from "../env.js";
 import type { GatewayDb } from "../db/client.js";
 import { threadEvents, threads } from "../db/schema.js";
 import type { ThreadEvent } from "../protocol/events.js";
 
 export async function appendThreadEvent(
-  db: GatewayDb["db"],
+  db: Omit<GatewayDb["db"], "$client">,
   env: Env,
   event: ThreadEvent,
+  deviceId?: string,
 ) {
-  await db.insert(threadEvents).values({
-    threadId: event.thread_id,
-    seq: event.seq,
-    type: event.type,
-    payload: event.payload,
-  });
-
-  const [{ value: total }] = await db
-    .select({ value: count() })
-    .from(threadEvents)
-    .where(eq(threadEvents.threadId, event.thread_id));
-
-  const maxEvents = env.MAX_EVENTS_PER_THREAD;
-  if (total > maxEvents) {
-    const toDrop = total - maxEvents;
-    const oldest = await db
-      .select({ seq: threadEvents.seq })
-      .from(threadEvents)
-      .where(eq(threadEvents.threadId, event.thread_id))
-      .orderBy(asc(threadEvents.seq))
-      .limit(toDrop);
-    for (const row of oldest) {
-      await db
-        .delete(threadEvents)
-        .where(
-          and(
-            eq(threadEvents.threadId, event.thread_id),
-            eq(threadEvents.seq, row.seq),
-          ),
-        );
+  return db.transaction(async (tx) => {
+    const [thread] = await tx.select().from(threads)
+      .where(eq(threads.id, event.thread_id)).for("update");
+    if (!thread || (deviceId !== undefined && thread.deviceId !== deviceId)) {
+      throw new Error("thread_not_found");
     }
-  }
+    // The runner sequence is a durable replay watermark, independent of client cursors.
+    if (deviceId !== undefined && event.seq <= thread.runnerSeq) return;
+    const seq = thread.eventSeq + 1;
+    await tx.insert(threadEvents).values({
+      threadId: event.thread_id, seq, type: event.type,
+      payload: { ...event.payload, ...(event.raw === undefined ? {} : { raw: event.raw }) },
+    });
+    await tx.update(threads).set({
+      eventSeq: seq,
+      ...(deviceId === undefined ? {} : { runnerSeq: event.seq }),
+      ...(event.type === "exit" ? {
+        status: thread.status === "killed" ? "killed" as const : "exited" as const,
+        exitedAt: new Date(),
+      } : {}),
+    }).where(eq(threads.id, event.thread_id));
+    await tx.delete(threadEvents).where(and(
+      eq(threadEvents.threadId, event.thread_id),
+      sql`${threadEvents.seq} <= ${seq - env.MAX_EVENTS_PER_THREAD}`,
+    ));
+  });
 }
 
 export async function listThreadEvents(
@@ -58,15 +53,15 @@ export async function listThreadEvents(
     .orderBy(asc(threadEvents.seq));
 
   return rows.map((row) => {
-    const payload = row.payload as Record<string, unknown>;
+    const { raw, ...payload } = row.payload as Record<string, unknown>;
     const base = {
       thread_id: threadId,
       seq: row.seq,
       type: row.type,
       payload,
     };
-    if (includeRaw && typeof payload.raw === "string") {
-      return { ...base, raw: payload.raw };
+    if (includeRaw && typeof raw === "string") {
+      return { ...base, raw };
     }
     return base;
   });

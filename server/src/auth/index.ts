@@ -46,7 +46,7 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
         : undefined,
     advanced: {
       database: {
-        joins: true,
+        joins: false,
       },
     },
     plugins: [
@@ -59,6 +59,7 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
         allowDynamicClientRegistration: true,
         allowUnauthenticatedClientRegistration: true,
         clientRegistrationDefaultApplicationType: "infer",
+        clientRegistrationDefaultResources: [env.MCP_RESOURCE],
         resources: [
           {
             identifier: env.MCP_RESOURCE,
