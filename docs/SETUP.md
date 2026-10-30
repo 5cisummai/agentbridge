@@ -64,6 +64,11 @@ If you put the gateway behind a reverse proxy or TLS terminator, set `BETTER_AUT
 | `MAX_EVENTS_PER_THREAD` | `10000` | Event retention cap per thread |
 | `APPROVAL_TIMEOUT_MS` | `900000` (15 min) | Approval expiry |
 
+### Rate limiting
+
+- **`/api/auth/*`**: Better Auth rate limits with counters stored in Postgres (`rateLimit` table). Enabled in development and production; disabled in `NODE_ENV=test`. Stricter limits on sign-in, sign-up, and verification email paths.
+- **`POST /v1/devices/enroll`** and **`POST /mcp`**: In-memory IP limits via gateway middleware (`server/src/http/ip-rate-limit.ts`; single process — use Redis or similar if you scale horizontally).
+
 ### Gateway-only (not in `.env.example`, read by code)
 
 | Variable | Purpose |

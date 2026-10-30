@@ -1,5 +1,6 @@
 import {
   boolean,
+  bigint,
   integer,
   jsonb,
   uniqueIndex,
@@ -57,6 +58,13 @@ export const verification = pgTable("verification", {
   expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt"),
   updatedAt: timestamp("updatedAt"),
+});
+
+/** Better Auth rate limit counters (when rateLimit.storage = "database"). */
+export const rateLimit = pgTable("rateLimit", {
+  key: text("key").primaryKey().notNull(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("lastRequest", { mode: "number" }).notNull(),
 });
 
 export const jwks = pgTable("jwks", {

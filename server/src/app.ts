@@ -6,6 +6,7 @@ import type { Env } from "./env.js";
 import type { HubRegistry } from "./hub/registry.js";
 import { enabledSocialProviders } from "./auth/social-providers.js";
 import { enrollDevice } from "./enroll/exchange.js";
+import { enrollRateLimit, mcpRateLimit } from "./http/ip-rate-limit.js";
 import { createProtectedMcpHandler } from "./mcp/handler.js";
 import { mountWebApp } from "./web.js";
 
@@ -39,7 +40,7 @@ export function createApp(deps: AppDeps): Hono {
 
   app.all("/api/auth/*", (c) => deps.auth.handler(c.req.raw));
 
-  app.post("/v1/devices/enroll", async (c) => {
+  app.post("/v1/devices/enroll", enrollRateLimit, async (c) => {
     const body = await c.req.json<{
       device_name: string;
       capabilities?: Record<string, unknown>;
@@ -54,7 +55,7 @@ export function createApp(deps: AppDeps): Hono {
   });
 
   const mcpHandler = createProtectedMcpHandler(deps);
-  app.post("/mcp", async (c) => mcpHandler(c.req.raw));
+  app.post("/mcp", mcpRateLimit, async (c) => mcpHandler(c.req.raw));
 
   mountWebApp(app);
 

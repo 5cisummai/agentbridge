@@ -12,6 +12,7 @@ import type { GatewayDb } from "../db/client.js";
 import * as authSchema from "../db/auth-schema.js";
 import type { Env } from "../env.js";
 import { sendVerificationEmail } from "./email/send-verification.js";
+import { buildAuthRateLimit } from "./rate-limit.js";
 import { buildSocialProviders } from "./social-providers.js";
 
 export const AGENTBRIDGE_SCOPES = [
@@ -52,6 +53,7 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
       },
     },
     socialProviders: buildSocialProviders(env),
+    rateLimit: buildAuthRateLimit(env),
     advanced: {
       database: {
         joins: false,
