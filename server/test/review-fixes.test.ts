@@ -45,11 +45,15 @@ it("consent posts the intact signed query and handles provider redirect", () => 
     "../../web/src/pages",
   );
   const consent = readFileSync(path.join(webRoot, "Consent.tsx"), "utf8");
-  const signIn = readFileSync(path.join(webRoot, "SignIn.tsx"), "utf8");
+  const passwordForm = readFileSync(
+    path.join(webRoot, "../components/auth/password-form.tsx"),
+    "utf8",
+  );
   expect(consent).toContain('fetch("/api/auth/oauth2/consent"');
-  expect(consent).toContain("oauth_query: location.search.slice(1)");
+  expect(consent).toContain("oauth_query: oauthQuery");
+  expect(consent).toContain("/api/auth/oauth2/public-client?client_id=");
   expect(consent).toContain("location.href = data.url");
-  expect(signIn).toContain("oauth_query: location.search.slice(1)");
+  expect(passwordForm).toContain("oauth_query: location.search.slice(1)");
 });
 
 describe.skipIf(!url)("review regressions with isolated PostgreSQL", () => {
