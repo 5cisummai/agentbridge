@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AuthPanel } from "@/components/auth-panel";
 import { GitHubIcon, GoogleIcon } from "@/components/auth/icons";
@@ -11,6 +11,11 @@ type AuthLayoutProps = {
   description: string;
   children: ReactNode;
   footer: ReactNode;
+};
+
+type AuthProviders = {
+  google: boolean;
+  github: boolean;
 };
 
 async function socialSignIn(provider: "github" | "google") {
@@ -38,6 +43,30 @@ export function AuthLayout({
   children,
   footer,
 }: AuthLayoutProps) {
+  const [providers, setProviders] = useState<AuthProviders | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/v1/auth-providers")
+      .then(async (res) => {
+        if (!res.ok) return { google: false, github: false };
+        return (await res.json()) as AuthProviders;
+      })
+      .then((data) => {
+        if (!cancelled) setProviders(data);
+      })
+      .catch(() => {
+        if (!cancelled) setProviders({ google: false, github: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const showGoogle = Boolean(providers?.google);
+  const showGithub = Boolean(providers?.github);
+  const showSocial = showGoogle || showGithub;
+
   return (
     <div className="relative grid min-h-full flex-1 lg:grid-cols-2">
       <div className="absolute top-4 right-4 z-10 sm:top-6 sm:right-6">
@@ -54,35 +83,47 @@ export function AuthLayout({
 
           {children}
 
-          <div className="relative my-8">
-            <Separator />
-            <span className="absolute inset-0 flex items-center justify-center">
-              <span className="bg-background px-3 text-xs text-muted-foreground">
-                Or continue with
-              </span>
-            </span>
-          </div>
+          {showSocial ? (
+            <>
+              <div className="relative my-8">
+                <Separator />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="bg-background px-3 text-xs text-muted-foreground">
+                    Or continue with
+                  </span>
+                </span>
+              </div>
 
-          <div className="space-y-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 w-full justify-center gap-2.5"
-              onClick={() => void socialSignIn("google").catch(() => undefined)}
-            >
-              <GoogleIcon className="size-4" />
-              Continue with Google
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 w-full justify-center gap-2.5"
-              onClick={() => void socialSignIn("github").catch(() => undefined)}
-            >
-              <GitHubIcon className="size-4" />
-              Continue with GitHub
-            </Button>
-          </div>
+              <div className="space-y-3">
+                {showGoogle ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 w-full justify-center gap-2.5"
+                    onClick={() =>
+                      void socialSignIn("google").catch(() => undefined)
+                    }
+                  >
+                    <GoogleIcon className="size-4" />
+                    Continue with Google
+                  </Button>
+                ) : null}
+                {showGithub ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 w-full justify-center gap-2.5"
+                    onClick={() =>
+                      void socialSignIn("github").catch(() => undefined)
+                    }
+                  >
+                    <GitHubIcon className="size-4" />
+                    Continue with GitHub
+                  </Button>
+                ) : null}
+              </div>
+            </>
+          ) : null}
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             {footer}

@@ -11,6 +11,11 @@ const envSchema = z.object({
   MCP_RESOURCE: z.string().url(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  /** Resend API key; omit (or leave empty) in local/dev to log verification links. */
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM: z.string().default("agentbridge <onboarding@resend.dev>"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
   MAX_THREADS_PER_DEVICE: z.coerce.number().default(8),
   MAX_EVENTS_PER_THREAD: z.coerce.number().default(10_000),

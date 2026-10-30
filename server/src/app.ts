@@ -4,6 +4,7 @@ import type { Auth } from "./auth/index.js";
 import type { GatewayDb } from "./db/client.js";
 import type { Env } from "./env.js";
 import type { HubRegistry } from "./hub/registry.js";
+import { enabledSocialProviders } from "./auth/social-providers.js";
 import { enrollDevice } from "./enroll/exchange.js";
 import { createProtectedMcpHandler } from "./mcp/handler.js";
 import { mountWebApp } from "./web.js";
@@ -27,6 +28,14 @@ export function createApp(deps: AppDeps): Hono {
   );
 
   app.get("/healthz", (c) => c.json({ ok: true }));
+
+  app.get("/v1/auth-providers", (c) => {
+    const providers = enabledSocialProviders(deps.env);
+    return c.json({
+      google: providers.includes("google"),
+      github: providers.includes("github"),
+    });
+  });
 
   app.all("/api/auth/*", (c) => deps.auth.handler(c.req.raw));
 

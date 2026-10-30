@@ -12,6 +12,8 @@ Thanks for helping improve agentbridge.
 
 ## Development setup
 
+Environment variables, OAuth alignment, email verification, and enroll flows: **[`docs/SETUP.md`](docs/SETUP.md)**.
+
 ### Formatting (repo root)
 
 ```bash
@@ -30,6 +32,7 @@ cp .env.example .env
 docker compose -f ../docker-compose.yml up -d postgres
 pnpm install
 pnpm exec drizzle-kit push
+pnpm --dir ../web build
 pnpm lint            # oxlint
 pnpm test
 pnpm dev
