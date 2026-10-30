@@ -4,12 +4,12 @@ Step-by-step instructions for running the gateway, web UI, runner, and MCP clien
 
 ## Prerequisites
 
-| Component | Requirement |
-|-----------|-------------|
-| Gateway | **Node.js 22+**, **pnpm**, **Docker** (for Postgres) |
-| Web UI | Built with Vite; needs `pnpm --dir web build` before the gateway can serve auth pages |
-| Runner | **Rust** toolchain (`cargo build`) |
-| Database | PostgreSQL 16 (compose file provided) |
+| Component | Requirement                                                                           |
+| --------- | ------------------------------------------------------------------------------------- |
+| Gateway   | **Node.js 22+**, **pnpm**, **Docker** (for Postgres)                                  |
+| Web UI    | Built with Vite; needs `pnpm --dir web build` before the gateway can serve auth pages |
+| Runner    | **Rust** toolchain (`cargo build`)                                                    |
+| Database  | PostgreSQL 16 (compose file provided)                                                 |
 
 From the repo root, install shared tooling once:
 
@@ -34,12 +34,12 @@ The gateway validates env on startup (`server/src/env.ts`). Invalid or missing r
 
 ### Required
 
-| Variable | Example (local) | Purpose |
-|----------|-----------------|--------|
-| `DATABASE_URL` | `postgres://agentbridge:agentbridge@localhost:5432/agentbridge` | Postgres connection for auth + hub state |
-| `BETTER_AUTH_SECRET` | 32+ random characters | Signs sessions and tokens. **Never use the example string in production.** Generate with e.g. `openssl rand -base64 32`. |
-| `BETTER_AUTH_URL` | `http://localhost:8787` | Public origin of the gateway (OAuth redirects, cookies, trusted origin). Must match what users type in the browser. |
-| `MCP_RESOURCE` | `http://localhost:8787/mcp` | OAuth **resource identifier** for MCP. Access tokens are bound to this URL. MCP clients must use the same resource when registering and connecting. |
+| Variable             | Example (local)                                                 | Purpose                                                                                                                                             |
+| -------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`       | `postgres://agentbridge:agentbridge@localhost:5432/agentbridge` | Postgres connection for auth + hub state                                                                                                            |
+| `BETTER_AUTH_SECRET` | 32+ random characters                                           | Signs sessions and tokens. **Never use the example string in production.** Generate with e.g. `openssl rand -base64 32`.                            |
+| `BETTER_AUTH_URL`    | `http://localhost:8787`                                         | Public origin of the gateway (OAuth redirects, cookies, trusted origin). Must match what users type in the browser.                                 |
+| `MCP_RESOURCE`       | `http://localhost:8787/mcp`                                     | OAuth **resource identifier** for MCP. Access tokens are bound to this URL. MCP clients must use the same resource when registering and connecting. |
 
 **URL alignment (important):** For a single local gateway, all three URLs share the same host/port:
 
@@ -51,19 +51,19 @@ If you put the gateway behind a reverse proxy or TLS terminator, set `BETTER_AUT
 
 ### Optional (gateway)
 
-| Variable | Default | Purpose |
-|----------|---------|--------|
-| `PORT` | `8787` | HTTP listen port |
-| `NODE_ENV` | `development` | `development` \| `production` \| `test` |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | (unset) | GitHub OAuth on sign-in. Omit both to hide GitHub. |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | (unset) | Google OAuth. Omit both to hide Google. |
-| `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION` | `false` in production | Public MCP client dynamic registration. Keep disabled unless your client ecosystem requires it; local development enables it automatically. |
-| `RESEND_API_KEY` | (unset) | Sends real verification emails via Resend. Required when `NODE_ENV=production`; local development can print verification links to the gateway console. |
-| `RESEND_FROM` | `agentbridge <onboarding@resend.dev>` | From address when using Resend |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | (unset) | OpenTelemetry trace export (HTTP) |
-| `MAX_THREADS_PER_DEVICE` | `8` | Hub limit per device |
-| `MAX_EVENTS_PER_THREAD` | `10000` | Event retention cap per thread |
-| `APPROVAL_TIMEOUT_MS` | `900000` (15 min) | Approval expiry |
+| Variable                                    | Default                               | Purpose                                                                                                                                                |
+| ------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PORT`                                      | `8787`                                | HTTP listen port                                                                                                                                       |
+| `NODE_ENV`                                  | `development`                         | `development` \| `production` \| `test`                                                                                                                |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | (unset)                               | GitHub OAuth on sign-in. Omit both to hide GitHub.                                                                                                     |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | (unset)                               | Google OAuth. Omit both to hide Google.                                                                                                                |
+| `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION` | `false` in production                 | Public MCP client dynamic registration. Keep disabled unless your client ecosystem requires it; local development enables it automatically.            |
+| `RESEND_API_KEY`                            | (unset)                               | Sends real verification emails via Resend. Required when `NODE_ENV=production`; local development can print verification links to the gateway console. |
+| `RESEND_FROM`                               | `agentbridge <onboarding@resend.dev>` | From address when using Resend                                                                                                                         |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`               | (unset)                               | OpenTelemetry trace export (HTTP)                                                                                                                      |
+| `MAX_THREADS_PER_DEVICE`                    | `8`                                   | Hub limit per device                                                                                                                                   |
+| `MAX_EVENTS_PER_THREAD`                     | `10000`                               | Event retention cap per thread                                                                                                                         |
+| `APPROVAL_TIMEOUT_MS`                       | `900000` (15 min)                     | Approval expiry                                                                                                                                        |
 
 ### Rate limiting
 
@@ -72,19 +72,19 @@ If you put the gateway behind a reverse proxy or TLS terminator, set `BETTER_AUT
 
 For a Cloudflare-proxied production gateway, create these Security > Rate limiting rules and tune thresholds from logs:
 
-| Expression | Starting limit | Action |
-|------------|----------------|--------|
-| `http.request.method eq "POST" and starts_with(http.request.uri.path, "/api/auth/")` | 30 requests / 60 seconds per IP | Block for 60 seconds |
-| `http.request.method eq "POST" and http.request.uri.path eq "/v1/devices/enroll"` | 20 requests / 60 seconds per IP | Block for 60 seconds |
-| `http.request.method eq "POST" and http.request.uri.path eq "/mcp"` | 300 requests / 60 seconds per IP | Block for 60 seconds |
-| `http.request.uri.path eq "/ws"` | 30 requests / 60 seconds per IP | Block for 60 seconds |
+| Expression                                                                           | Starting limit                   | Action               |
+| ------------------------------------------------------------------------------------ | -------------------------------- | -------------------- |
+| `http.request.method eq "POST" and starts_with(http.request.uri.path, "/api/auth/")` | 30 requests / 60 seconds per IP  | Block for 60 seconds |
+| `http.request.method eq "POST" and http.request.uri.path eq "/v1/devices/enroll"`    | 20 requests / 60 seconds per IP  | Block for 60 seconds |
+| `http.request.method eq "POST" and http.request.uri.path eq "/mcp"`                  | 300 requests / 60 seconds per IP | Block for 60 seconds |
+| `http.request.uri.path eq "/ws"`                                                     | 30 requests / 60 seconds per IP  | Block for 60 seconds |
 
 These edge limits absorb volumetric abuse; Better Auth's Postgres limits remain the authoritative protection for authentication. Lock down the origin firewall/security group to Cloudflare IPs and use `CF-Connecting-IP` only after that restriction is in place.
 
 ### Gateway-only (not in `.env.example`, read by code)
 
-| Variable | Purpose |
-|----------|--------|
+| Variable   | Purpose                                                                                                                                  |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `WEB_DIST` | Absolute path to built SPA (`index.html` + assets). Docker sets `/app/public`. Local dev usually needs no override if `web/dist` exists. |
 
 ---
@@ -145,21 +145,49 @@ Compose injects `DATABASE_URL` for the gateway service and passes through OAuth/
 
 ## 5. Runner setup
 
-### Build and gateway URL
+### Install the runner
+
+The supported release targets are Linux and macOS on x86_64 and aarch64. Install
+the pinned runner release with the command below after the `v0.1.0` GitHub
+release is published:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/5cisummai/agentbridge/v0.1.0/runner/scripts/install.sh | bash
+export PATH="${AGENTBRIDGE_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
+```
+
+The installer places `agentbridge` in `~/.local/bin`. Set
+`AGENTBRIDGE_INSTALL_DIR` to change that location, or set
+`AGENTBRIDGE_VERIFY=1` to verify the downloaded binary against the release
+checksums.
+
+For local development or an unsupported platform, build from source:
 
 ```bash
 cd runner
 cargo build --release
 export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787   # overrides config file
-./target/release/agentbridge enroll --name "$(hostname)"
+```
+
+### Gateway URL and enrollment
+
+The runner must target the same public gateway that you use in the browser for
+OAuth:
+
+If you built from source, replace `agentbridge` below with
+`./target/release/agentbridge`.
+
+```bash
+export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787
+agentbridge enroll --name "$(hostname)"
 ```
 
 `AGENTBRIDGE_GATEWAY_URL` overrides `gateway_url` in the runner config file for that process. Persisted config lives at:
 
-| OS | Config | Device credential | SQLite data |
-|----|--------|-------------------|-------------|
+| OS    | Config                                                  | Device credential        | SQLite data                                               |
+| ----- | ------------------------------------------------------- | ------------------------ | --------------------------------------------------------- |
 | macOS | `~/Library/Application Support/agentbridge/config.toml` | `.../device.json` (0600) | `~/Library/Application Support/agentbridge/runner.sqlite` |
-| Linux | `$XDG_CONFIG_HOME/agentbridge/config.toml` | `.../device.json` | `$XDG_DATA_HOME/agentbridge/runner.sqlite` |
+| Linux | `$XDG_CONFIG_HOME/agentbridge/config.toml`              | `.../device.json`        | `$XDG_DATA_HOME/agentbridge/runner.sqlite`                |
 
 ### Enroll flow
 
@@ -171,26 +199,26 @@ export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787   # overrides config file
 ### Run the runner
 
 ```bash
-./target/release/agentbridge run
+agentbridge run
 ```
 
 Connects to `{gateway}/ws` with `device.hello` using the enrolled credential.
 
 ### Runner config file (`config.toml`)
 
-| Key | Default | Meaning |
-|-----|---------|--------|
-| `gateway_url` | `http://localhost:8787` | HTTP(S) base URL (WS URL is derived) |
-| `heartbeat_interval_secs` | `15` | Hub heartbeat |
-| `max_threads` | compile-time default | Local PTY thread cap |
+| Key                       | Default                 | Meaning                              |
+| ------------------------- | ----------------------- | ------------------------------------ |
+| `gateway_url`             | `http://localhost:8787` | HTTP(S) base URL (WS URL is derived) |
+| `heartbeat_interval_secs` | `15`                    | Hub heartbeat                        |
+| `max_threads`             | compile-time default    | Local PTY thread cap                 |
 
 ### Runner environment
 
-| Variable | Purpose |
-|----------|--------|
-| `AGENTBRIDGE_GATEWAY_URL` | Overrides `gateway_url` for enroll/run |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional OTLP HTTP traces |
-| `AGENTBRIDGE_TEST_DIR` | Test-only; redirects config/data dirs |
+| Variable                      | Purpose                                |
+| ----------------------------- | -------------------------------------- |
+| `AGENTBRIDGE_GATEWAY_URL`     | Overrides `gateway_url` for enroll/run |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional OTLP HTTP traces              |
+| `AGENTBRIDGE_TEST_DIR`        | Test-only; redirects config/data dirs  |
 
 ### CLI API keys (stay on the device)
 
@@ -209,11 +237,11 @@ OAuth client id for enroll is fixed: **`agentbridge-runner`** (public native cli
 
 ## 6. Connect an MCP client
 
-| Setting | Value (local) |
-|---------|----------------|
-| MCP URL | `http://localhost:8787/mcp` (must match `MCP_RESOURCE`) |
-| Auth | OAuth 2.1 (Better Auth MCP plugin); dynamic client registration is supported, but unauthenticated public registration is disabled in production unless explicitly enabled |
-| Scopes | `agentbridge:devices`, `agentbridge:threads`, `agentbridge:profiles`, `agentbridge:approvals`, `agentbridge:admin` (+ `openid`, `profile`, `offline_access` as needed) |
+| Setting | Value (local)                                                                                                                                                             |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP URL | `http://localhost:8787/mcp` (must match `MCP_RESOURCE`)                                                                                                                   |
+| Auth    | OAuth 2.1 (Better Auth MCP plugin); dynamic client registration is supported, but unauthenticated public registration is disabled in production unless explicitly enabled |
+| Scopes  | `agentbridge:devices`, `agentbridge:threads`, `agentbridge:profiles`, `agentbridge:approvals`, `agentbridge:admin` (+ `openid`, `profile`, `offline_access` as needed)    |
 
 Typical flow:
 
@@ -234,11 +262,11 @@ cd server
 DEVICE_ID=<uuid> DEVICE_SECRET=<secret> pnpm mock-runner
 ```
 
-| Variable | Default | Purpose |
-|----------|---------|--------|
-| `DEVICE_ID` | (required) | From enroll response |
-| `DEVICE_SECRET` | (required) | From enroll response |
-| `GATEWAY_URL` | `ws://localhost:8787/ws` | WebSocket hub URL |
+| Variable        | Default                  | Purpose              |
+| --------------- | ------------------------ | -------------------- |
+| `DEVICE_ID`     | (required)               | From enroll response |
+| `DEVICE_SECRET` | (required)               | From enroll response |
+| `GATEWAY_URL`   | `ws://localhost:8787/ws` | WebSocket hub URL    |
 
 ---
 
@@ -257,15 +285,15 @@ DEVICE_ID=<uuid> DEVICE_SECRET=<secret> pnpm mock-runner
 
 ## 9. Troubleshooting
 
-| Symptom | Likely cause |
-|---------|----------------|
-| “Web UI not built” | Run `pnpm --dir web build` |
-| Invalid environment on start | Missing var or `BETTER_AUTH_SECRET` shorter than 32 chars |
-| OAuth / MCP 401 or wrong audience | `MCP_RESOURCE` does not match client resource URL |
-| Sign-up works but cannot sign in | Email not verified; check Resend or gateway logs for link |
-| Runner enroll fails after approve | `AGENTBRIDGE_GATEWAY_URL` wrong; token must include `MCP_RESOURCE` audience |
-| `device.hello` rejected | Wrong `device.json`, or device owned by another user |
-| Drizzle migrate empty DB | Use `drizzle-kit push` for fresh DBs; see server README for SQL upgrade path |
+| Symptom                           | Likely cause                                                                 |
+| --------------------------------- | ---------------------------------------------------------------------------- |
+| “Web UI not built”                | Run `pnpm --dir web build`                                                   |
+| Invalid environment on start      | Missing var or `BETTER_AUTH_SECRET` shorter than 32 chars                    |
+| OAuth / MCP 401 or wrong audience | `MCP_RESOURCE` does not match client resource URL                            |
+| Sign-up works but cannot sign in  | Email not verified; check Resend or gateway logs for link                    |
+| Runner enroll fails after approve | `AGENTBRIDGE_GATEWAY_URL` wrong; token must include `MCP_RESOURCE` audience  |
+| `device.hello` rejected           | Wrong `device.json`, or device owned by another user                         |
+| Drizzle migrate empty DB          | Use `drizzle-kit push` for fresh DBs; see server README for SQL upgrade path |
 
 ---
 

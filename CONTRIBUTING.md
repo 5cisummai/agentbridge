@@ -46,6 +46,29 @@ cargo test
 cargo build
 ```
 
+### Cutting a runner release
+
+1. Bump the version in [`runner/Cargo.toml`](runner/Cargo.toml).
+2. Update the installer default and pinned install examples to the same
+   version.
+3. Commit the version change and push it to the default branch.
+4. Create and push a matching tag:
+
+   ```bash
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+
+5. Confirm the **Release runner** workflow publishes four binaries and
+   `SHA256SUMS` on GitHub.
+6. Smoke-test the installer on a supported platform:
+
+   ```bash
+   AGENTBRIDGE_VERSION=X.Y.Z bash runner/scripts/install.sh
+   export PATH="${AGENTBRIDGE_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
+   agentbridge --help
+   ```
+
 ## Pull requests
 
 1. Fork (or branch) from `main`.

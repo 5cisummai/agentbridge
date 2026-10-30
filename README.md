@@ -10,13 +10,13 @@ This is not remote-SSH into an IDE. It is a neutral bridge: any CLI profile, you
 
 ## Repository layout
 
-| Path                                           | Role                                                       |
-| ---------------------------------------------- | ---------------------------------------------------------- |
-| [`server/`](server/)                           | Gateway — Better Auth, Postgres, MCP HTTP, WebSocket hub   |
+| Path                                           | Role                                                        |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| [`server/`](server/)                           | Gateway — Better Auth, Postgres, MCP HTTP, WebSocket hub    |
 | [`web/`](web/)                                 | React OAuth UI (sign-in, consent, device) served by gateway |
-| [`runner/`](runner/)                           | Device runner — enroll, outbound WS, PTY threads, profiles |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Product and technical decision log                         |
-| [`docker-compose.yml`](docker-compose.yml)     | Local Postgres (+ optional gateway image)                  |
+| [`runner/`](runner/)                           | Device runner — enroll, outbound WS, PTY threads, profiles  |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Product and technical decision log                          |
+| [`docker-compose.yml`](docker-compose.yml)     | Local Postgres (+ optional gateway image)                   |
 
 ## Quick start (local)
 
@@ -30,12 +30,12 @@ cp .env.example .env
 
 Minimum local values (defaults in `.env.example`):
 
-| Variable | Local value | Notes |
-|----------|-------------|--------|
-| `DATABASE_URL` | `postgres://agentbridge:agentbridge@localhost:5432/agentbridge` | Matches `docker-compose.yml` Postgres |
-| `BETTER_AUTH_SECRET` | 32+ characters | Example string is **dev-only** |
-| `BETTER_AUTH_URL` | `http://localhost:8787` | Must match browser URL |
-| `MCP_RESOURCE` | `http://localhost:8787/mcp` | MCP OAuth resource; keep in sync with `BETTER_AUTH_URL` |
+| Variable             | Local value                                                     | Notes                                                   |
+| -------------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
+| `DATABASE_URL`       | `postgres://agentbridge:agentbridge@localhost:5432/agentbridge` | Matches `docker-compose.yml` Postgres                   |
+| `BETTER_AUTH_SECRET` | 32+ characters                                                  | Example string is **dev-only**                          |
+| `BETTER_AUTH_URL`    | `http://localhost:8787`                                         | Must match browser URL                                  |
+| `MCP_RESOURCE`       | `http://localhost:8787/mcp`                                     | MCP OAuth resource; keep in sync with `BETTER_AUTH_URL` |
 
 Without `RESEND_API_KEY`, email verification links appear in the **gateway log** after sign-up.
 
@@ -57,16 +57,25 @@ UI watch mode: `pnpm --dir web build --watch` plus `pnpm --dir server dev`.
 ### 3. Account + runner
 
 1. Sign up at `/sign-up`, verify email (Resend or console link).
-2. Enroll a device:
+2. Install and enroll a device:
+
+The pinned installer below is available after the `v0.1.0` GitHub release is
+published. Until then, use the source-build fallback below.
 
 ```bash
-cd runner
-cargo build --release
+curl -fsSL https://raw.githubusercontent.com/5cisummai/agentbridge/v0.1.0/runner/scripts/install.sh | bash
+export PATH="${AGENTBRIDGE_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
 export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787
-./target/release/agentbridge enroll --name "$(hostname)"
+agentbridge enroll --name "$(hostname)"
 # Approve at http://localhost:8787/device
-./target/release/agentbridge run
+agentbridge run
 ```
+
+Release binaries and `SHA256SUMS` are published on the
+[GitHub Releases page](https://github.com/5cisummai/agentbridge/releases).
+
+For local development or platforms without a release asset, build from source with
+`cd runner && cargo build --release` and use `./target/release/agentbridge`.
 
 3. Point an MCP client at `MCP_RESOURCE` (`http://localhost:8787/mcp`) with OAuth. Scopes and client setup: [`docs/SETUP.md`](docs/SETUP.md).
 
