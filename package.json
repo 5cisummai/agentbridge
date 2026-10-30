@@ -7,7 +7,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "pnpm --dir server lint",
-    "lint:fix": "pnpm --dir server lint:fix"
+    "lint:fix": "pnpm --dir server lint:fix",
+    "build:web": "pnpm --dir web build",
+    "dev:web": "pnpm --dir web build --watch"
   },
   "devDependencies": {
     "prettier": "^3.6.2"

@@ -22,7 +22,9 @@ import {
 import { resolveApprovalTimeouts } from "../src/services/approval-timeout.js";
 import { createHubRegistry } from "../src/hub/registry.js";
 import { hashDeviceSecret } from "../src/services/devices.js";
-import { consentPage, signInPage } from "../src/pages/html.js";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Env } from "../src/env.js";
 
 const url = process.env.REVIEW_DATABASE_URL;
@@ -38,13 +40,16 @@ const env: Env = {
   APPROVAL_TIMEOUT_MS: 900000,
 };
 it("consent posts the intact signed query and handles provider redirect", () => {
-  const html = consentPage();
-  expect(html).toContain('fetch("/api/auth/oauth2/consent"');
-  expect(html).toContain("oauth_query: location.search.slice(1)");
-  expect(html).toContain("location.href = data.url");
-  expect(signInPage(env.BETTER_AUTH_URL)).toContain(
-    "oauth_query: location.search.slice(1)",
+  const webRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../web/src/pages",
   );
+  const consent = readFileSync(path.join(webRoot, "Consent.tsx"), "utf8");
+  const signIn = readFileSync(path.join(webRoot, "SignIn.tsx"), "utf8");
+  expect(consent).toContain('fetch("/api/auth/oauth2/consent"');
+  expect(consent).toContain("oauth_query: location.search.slice(1)");
+  expect(consent).toContain("location.href = data.url");
+  expect(signIn).toContain("oauth_query: location.search.slice(1)");
 });
 
 describe.skipIf(!url)("review regressions with isolated PostgreSQL", () => {

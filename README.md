@@ -11,6 +11,7 @@ This is not remote-SSH into an IDE. It is a neutral bridge: any CLI profile, you
 | Path                                           | Role                                                       |
 | ---------------------------------------------- | ---------------------------------------------------------- |
 | [`server/`](server/)                           | Gateway — Better Auth, Postgres, MCP HTTP, WebSocket hub   |
+| [`web/`](web/)                                 | React OAuth UI (sign-in, consent, device) served by gateway |
 | [`runner/`](runner/)                           | Device runner — enroll, outbound WS, PTY threads, profiles |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Product and technical decision log                         |
 | [`docker-compose.yml`](docker-compose.yml)     | Local Postgres (+ optional gateway image)                  |
@@ -25,10 +26,13 @@ cp .env.example .env
 docker compose -f ../docker-compose.yml up -d postgres
 pnpm install
 pnpm exec drizzle-kit push   # fresh local DB; review the proposed schema
+pnpm --dir ../web build      # React OAuth UI → web/dist (served by the gateway)
 pnpm dev
 ```
 
-Gateway defaults to `http://localhost:8787`. Details, upgrades, and MCP notes: [`server/README.md`](server/README.md).
+Gateway defaults to `http://localhost:8787` (`/sign-in`, `/consent`, `/device`). Details, upgrades, and MCP notes: [`server/README.md`](server/README.md).
+
+While iterating on the UI: `pnpm --dir web build --watch` in one terminal, `pnpm --dir server dev` in another (same origin keeps auth cookies simple).
 
 `docker-compose.yml` uses local-dev Postgres credentials (`agentbridge` / `agentbridge`) and a placeholder `BETTER_AUTH_SECRET`. **Do not use those values in production.**
 

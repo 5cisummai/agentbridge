@@ -12,9 +12,12 @@ cp .env.example .env
 docker compose -f ../docker-compose.yml up -d postgres
 pnpm install   # if pnpm blocks builds: pnpm approve-builds
 pnpm exec drizzle-kit push # fresh local database; review the proposed schema
+pnpm --dir ../web build    # OAuth UI (React) for /sign-in /consent /device
 pnpm lint      # oxlint (see .oxlintrc.json)
 pnpm dev
 ```
+
+The gateway serves the built SPA from `../web/dist` (or `WEB_DIST`). Rebuild the UI after changes, or run `pnpm --dir ../web build --watch` alongside `pnpm dev`.
 
 Repo-root Prettier (`pnpm format` from the monorepo root) formats markdown and TypeScript across the tree.
 

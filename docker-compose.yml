@@ -17,8 +17,8 @@ services:
 
   gateway:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
     ports:
       - "8787:8787"
     environment:

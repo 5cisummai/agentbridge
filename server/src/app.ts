@@ -6,7 +6,7 @@ import type { Env } from "./env.js";
 import type { HubRegistry } from "./hub/registry.js";
 import { enrollDevice } from "./enroll/exchange.js";
 import { createProtectedMcpHandler } from "./mcp/handler.js";
-import { consentPage, devicePage, signInPage } from "./pages/html.js";
+import { mountWebApp } from "./web.js";
 
 export type AppDeps = {
   env: Env;
@@ -28,10 +28,6 @@ export function createApp(deps: AppDeps): Hono {
 
   app.get("/healthz", (c) => c.json({ ok: true }));
 
-  app.get("/sign-in", (c) => c.html(signInPage(deps.env.BETTER_AUTH_URL)));
-  app.get("/consent", (c) => c.html(consentPage()));
-  app.get("/device", (c) => c.html(devicePage()));
-
   app.all("/api/auth/*", (c) => deps.auth.handler(c.req.raw));
 
   app.post("/v1/devices/enroll", async (c) => {
@@ -50,6 +46,8 @@ export function createApp(deps: AppDeps): Hono {
 
   const mcpHandler = createProtectedMcpHandler(deps);
   app.post("/mcp", async (c) => mcpHandler(c.req.raw));
+
+  mountWebApp(app);
 
   return app;
 }
