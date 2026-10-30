@@ -26,7 +26,10 @@ export function createProtectedMcpHandler(deps: AppDeps & { auth: Auth }) {
 
       return server;
     },
-    { legacy: "reject" },
+    // Temporary: serve 2026-07-28 for modern clients and accept 2025-era
+    // initialize traffic (Grok, Cursor, etc.) via per-request stateless fallback.
+    // Revisit when those clients negotiate 2026-07-28 by default.
+    { legacy: "stateless" },
   );
 
   return requireMcpAuth(

@@ -2,6 +2,8 @@
 
 TypeScript relay: Better Auth (OAuth 2.1 + MCP 2026-07-28), Postgres, WebSocket JSON-RPC hub, MCP tools.
 
+MCP HTTP serves **2026-07-28** and, for now, **legacy 2025-era clients** via `createMcpHandler({ legacy: "stateless" })` so Grok/Cursor-class clients that still use `initialize` can connect. Legacy session GET/DELETE still return 405 in this mode. Prefer tightening back to `legacy: "reject"` once those clients negotiate the new protocol.
+
 ## Local dev
 
 ```bash
