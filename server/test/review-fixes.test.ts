@@ -52,7 +52,8 @@ it("consent posts the intact signed query and handles provider redirect", () => 
   expect(consent).toContain('fetch("/api/auth/oauth2/consent"');
   expect(consent).toContain("oauth_query: oauthQuery");
   expect(consent).toContain("/api/auth/oauth2/public-client?client_id=");
-  expect(consent).toContain("location.href = data.url");
+  expect(consent).toContain("safeAuthNavigation(data.url)");
+  expect(consent).toContain("location.assign(destination)");
   expect(passwordForm).toContain("oauth_query: location.search.slice(1)");
 });
 
@@ -263,7 +264,7 @@ describe.skipIf(!url)("review regressions with isolated PostgreSQL", () => {
     try {
       const code = await request("/device/code", {
         client_id: "agentbridge-runner",
-        scope: "openid profile offline_access",
+        scope: "openid profile offline_access agentbridge:devices",
         resource: env.MCP_RESOURCE,
       });
       const device = await code.json();

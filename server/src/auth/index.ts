@@ -26,6 +26,8 @@ export const AGENTBRIDGE_SCOPES = [
   "agentbridge:admin",
 ] as const;
 
+export const DEVICE_ENROLL_SCOPE = "agentbridge:devices";
+
 export function createAuth(env: Env, gatewayDb: GatewayDb) {
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
@@ -49,6 +51,11 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
           email: user.email,
           name: user.name,
           url,
+        }).catch((error: unknown) => {
+          console.error(
+            "[auth] verification email delivery failed",
+            error instanceof Error ? error.message : "unknown error",
+          );
         });
       },
     },
@@ -57,6 +64,12 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
     advanced: {
       database: {
         joins: false,
+      },
+      ipAddress: {
+        ipAddressHeaders:
+          env.NODE_ENV === "production"
+            ? ["cf-connecting-ip"]
+            : ["x-forwarded-for"],
       },
     },
     plugins: [
@@ -67,7 +80,9 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
         resource: env.MCP_RESOURCE,
         scopes: [...AGENTBRIDGE_SCOPES],
         allowDynamicClientRegistration: true,
-        allowUnauthenticatedClientRegistration: true,
+        allowUnauthenticatedClientRegistration:
+          env.NODE_ENV !== "production" ||
+          env.ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION === "true",
         clientRegistrationDefaultApplicationType: "infer",
         clientRegistrationDefaultResources: [env.MCP_RESOURCE],
         resources: [

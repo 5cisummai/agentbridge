@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  safeAuthNavigation,
+  safeHttpsUrl,
+  safeSameOriginPath,
+} from "@/lib/safe-url";
 
 type PublicClient = {
   client_id: string;
@@ -45,12 +50,10 @@ export function ConsentPage() {
 
   useEffect(() => {
     if (!clientId) {
-      setLoadingClient(false);
       return;
     }
 
     let cancelled = false;
-    setLoadingClient(true);
 
     void fetch(
       `/api/auth/oauth2/public-client?client_id=${encodeURIComponent(clientId)}`,
@@ -87,10 +90,11 @@ export function ConsentPage() {
         }),
       });
       const data = (await res.json()) as { url?: string };
-      if (!res.ok || !data.url) {
+      const destination = safeAuthNavigation(data.url);
+      if (!res.ok || !destination) {
         throw new Error("Consent failed. Please sign in and try again.");
       }
-      location.href = data.url;
+      location.assign(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Consent failed");
       setPending(false);
@@ -99,6 +103,10 @@ export function ConsentPage() {
 
   const displayName =
     client?.client_name?.trim() || clientId || "this MCP client";
+  const logoUri = safeSameOriginPath(client?.logo_uri);
+  const clientUri = safeHttpsUrl(client?.client_uri);
+  const tosUri = safeHttpsUrl(client?.tos_uri);
+  const policyUri = safeHttpsUrl(client?.policy_uri);
 
   return (
     <div className="relative flex min-h-full flex-1 items-center justify-center px-6 py-12">
@@ -120,9 +128,9 @@ export function ConsentPage() {
         {(client || clientId || scopes.length > 0) && !loadingClient ? (
           <div className="space-y-4 rounded-lg border border-border bg-muted/40 p-4">
             <div className="flex items-start gap-3">
-              {client?.logo_uri ? (
+              {logoUri ? (
                 <img
-                  src={client.logo_uri}
+                  src={logoUri}
                   alt=""
                   className="mt-0.5 size-10 rounded-md border border-border bg-background object-cover"
                 />
@@ -140,14 +148,14 @@ export function ConsentPage() {
                     {clientId}
                   </p>
                 ) : null}
-                {client?.client_uri ? (
+                {clientUri ? (
                   <a
-                    href={client.client_uri}
+                    href={clientUri}
                     target="_blank"
                     rel="noreferrer"
                     className="block truncate text-xs text-muted-foreground underline-offset-4 hover:underline"
                   >
-                    {client.client_uri}
+                    {clientUri}
                   </a>
                 ) : null}
               </div>
@@ -178,13 +186,13 @@ export function ConsentPage() {
               </>
             ) : null}
 
-            {client?.tos_uri || client?.policy_uri ? (
+            {tosUri || policyUri ? (
               <>
                 <Separator />
                 <p className="text-xs text-muted-foreground">
-                  {client.tos_uri ? (
+                  {tosUri ? (
                     <a
-                      href={client.tos_uri}
+                      href={tosUri}
                       target="_blank"
                       rel="noreferrer"
                       className="underline-offset-4 hover:underline"
@@ -192,10 +200,10 @@ export function ConsentPage() {
                       Terms
                     </a>
                   ) : null}
-                  {client.tos_uri && client.policy_uri ? " · " : null}
-                  {client.policy_uri ? (
+                  {tosUri && policyUri ? " · " : null}
+                  {policyUri ? (
                     <a
-                      href={client.policy_uri}
+                      href={policyUri}
                       target="_blank"
                       rel="noreferrer"
                       className="underline-offset-4 hover:underline"

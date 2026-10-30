@@ -57,7 +57,8 @@ If you put the gateway behind a reverse proxy or TLS terminator, set `BETTER_AUT
 | `NODE_ENV` | `development` | `development` \| `production` \| `test` |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | (unset) | GitHub OAuth on sign-in. Omit both to hide GitHub. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | (unset) | Google OAuth. Omit both to hide Google. |
-| `RESEND_API_KEY` | (unset) | Sends real verification emails via Resend. **If unset, verification links are printed to the gateway console** (fine for local dev). |
+| `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION` | `false` in production | Public MCP client dynamic registration. Keep disabled unless your client ecosystem requires it; local development enables it automatically. |
+| `RESEND_API_KEY` | (unset) | Sends real verification emails via Resend. Required when `NODE_ENV=production`; local development can print verification links to the gateway console. |
 | `RESEND_FROM` | `agentbridge <onboarding@resend.dev>` | From address when using Resend |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | (unset) | OpenTelemetry trace export (HTTP) |
 | `MAX_THREADS_PER_DEVICE` | `8` | Hub limit per device |
@@ -67,7 +68,18 @@ If you put the gateway behind a reverse proxy or TLS terminator, set `BETTER_AUT
 ### Rate limiting
 
 - **`/api/auth/*`**: Better Auth rate limits with counters stored in Postgres (`rateLimit` table). Enabled in development and production; disabled in `NODE_ENV=test`. Stricter limits on sign-in, sign-up, and verification email paths.
-- **`POST /v1/devices/enroll`** and **`POST /mcp`**: In-memory IP limits via gateway middleware (`server/src/http/ip-rate-limit.ts`; single process — use Redis or similar if you scale horizontally).
+- **Cloudflare edge rules**: Apply rate limiting before traffic reaches the gateway. The origin must only accept traffic from Cloudflare; otherwise these rules can be bypassed.
+
+For a Cloudflare-proxied production gateway, create these Security > Rate limiting rules and tune thresholds from logs:
+
+| Expression | Starting limit | Action |
+|------------|----------------|--------|
+| `http.request.method eq "POST" and starts_with(http.request.uri.path, "/api/auth/")` | 30 requests / 60 seconds per IP | Block for 60 seconds |
+| `http.request.method eq "POST" and http.request.uri.path eq "/v1/devices/enroll"` | 20 requests / 60 seconds per IP | Block for 60 seconds |
+| `http.request.method eq "POST" and http.request.uri.path eq "/mcp"` | 300 requests / 60 seconds per IP | Block for 60 seconds |
+| `http.request.uri.path eq "/ws"` | 30 requests / 60 seconds per IP | Block for 60 seconds |
+
+These edge limits absorb volumetric abuse; Better Auth's Postgres limits remain the authoritative protection for authentication. Lock down the origin firewall/security group to Cloudflare IPs and use `CF-Connecting-IP` only after that restriction is in place.
 
 ### Gateway-only (not in `.env.example`, read by code)
 
@@ -126,7 +138,7 @@ Compose injects `DATABASE_URL` for the gateway service and passes through OAuth/
 
 1. Open `http://localhost:8787/sign-up` (or `/sign-in`).
 2. Register with email/password (or GitHub/Google if configured).
-3. Verify email via Resend or the **console link** when `RESEND_API_KEY` is unset.
+3. Verify email via Resend. In local development only, the **console link** is used when `RESEND_API_KEY` is unset.
 4. You need this user before enrolling a runner device (device flow binds to your account).
 
 ---
@@ -154,7 +166,7 @@ export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787   # overrides config file
 1. CLI prints a **device code** and opens or points you to `{BETTER_AUTH_URL}/device`.
 2. Sign in as the user who should own the device.
 3. Approve the code in the browser.
-4. Runner stores `device_id` + secret in `device.json`.
+4. Runner stores `device_id` + secret in `device.json`. Enrollment requires the `agentbridge:devices` OAuth scope.
 
 ### Run the runner
 
@@ -191,7 +203,7 @@ agentbridge profiles list
 agentbridge status
 ```
 
-OAuth client id for enroll is fixed: **`agentbridge-runner`** (public native client, device-code grant).
+OAuth client id for enroll is fixed: **`agentbridge-runner`** (public native client, device-code grant). Its device-code token is explicitly scoped for enrollment.
 
 ---
 
@@ -200,7 +212,7 @@ OAuth client id for enroll is fixed: **`agentbridge-runner`** (public native cli
 | Setting | Value (local) |
 |---------|----------------|
 | MCP URL | `http://localhost:8787/mcp` (must match `MCP_RESOURCE`) |
-| Auth | OAuth 2.1 (Better Auth MCP plugin); dynamic client registration supported |
+| Auth | OAuth 2.1 (Better Auth MCP plugin); dynamic client registration is supported, but unauthenticated public registration is disabled in production unless explicitly enabled |
 | Scopes | `agentbridge:devices`, `agentbridge:threads`, `agentbridge:profiles`, `agentbridge:approvals`, `agentbridge:admin` (+ `openid`, `profile`, `offline_access` as needed) |
 
 Typical flow:

@@ -3,16 +3,11 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { safeAuthNavigation, safeSameOriginPath } from "@/lib/safe-url";
 
 type PasswordFormProps = {
   mode: "login" | "signup";
 };
-
-function safeRedirect(value: string | null): string | null {
-  if (!value) return null;
-  if (!value.startsWith("/") || value.startsWith("//")) return null;
-  return value;
-}
 
 export function PasswordForm({ mode }: PasswordFormProps) {
   const [name, setName] = useState("");
@@ -113,8 +108,11 @@ export function PasswordForm({ mode }: PasswordFormProps) {
         return;
       }
 
-      const redirect = safeRedirect(query.get("redirect"));
-      location.href = data.url || redirect || "/";
+      const destination =
+        safeAuthNavigation(data.url) ??
+        safeSameOriginPath(query.get("redirect")) ??
+        "/";
+      location.assign(destination);
     } catch {
       setError(
         mode === "signup"

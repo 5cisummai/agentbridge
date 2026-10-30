@@ -5,6 +5,7 @@ import { GitHubIcon, GoogleIcon } from "@/components/auth/icons";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { safeAuthNavigation } from "@/lib/safe-url";
 
 type AuthLayoutProps = {
   title: string;
@@ -19,6 +20,7 @@ type AuthProviders = {
 };
 
 async function socialSignIn(provider: "github" | "google") {
+  const query = new URLSearchParams(location.search);
   const res = await fetch("/api/auth/sign-in/social", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -26,15 +28,18 @@ async function socialSignIn(provider: "github" | "google") {
     body: JSON.stringify({
       provider,
       callbackURL: "/",
+      ...(query.has("sig")
+        ? { oauth_query: location.search.slice(1) }
+        : {}),
     }),
   });
   if (!res.ok) {
     throw new Error(`${provider} sign-in is not configured`);
   }
   const data = (await res.json()) as { url?: string };
-  if (data.url) {
-    location.href = data.url;
-  }
+  const destination = safeAuthNavigation(data.url);
+  if (!destination) throw new Error(`${provider} returned an invalid URL`);
+  location.assign(destination);
 }
 
 export function AuthLayout({

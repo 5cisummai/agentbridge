@@ -27,6 +27,9 @@ export async function sendVerificationEmail(
   const client = getResend(env);
 
   if (!client) {
+    if (env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY is required in production");
+    }
     console.info(
       `[auth] verification link for ${input.email} (set RESEND_API_KEY to send email):\n${input.url}`,
     );
