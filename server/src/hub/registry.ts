@@ -183,6 +183,11 @@ export function createHubRegistry(opts: {
 
       async function handleConnection(ws: import("ws").WebSocket) {
         let authenticatedDeviceId: string | null = null;
+        const helloTimer = setTimeout(() => {
+          if (!authenticatedDeviceId && ws.readyState === ws.OPEN) {
+            ws.close(4005, "hello_timeout");
+          }
+        }, 10_000);
 
         let queue = Promise.resolve();
         ws.on("error", () => ws.close());
@@ -200,6 +205,7 @@ export function createHubRegistry(opts: {
         });
 
         ws.on("close", () => {
+          clearTimeout(helloTimer);
           if (authenticatedDeviceId)
             void markOffline(authenticatedDeviceId, ws).catch(console.error);
         });
@@ -264,6 +270,7 @@ export function createHubRegistry(opts: {
             pending.reject(new Error("connection_replaced"));
           }
           authenticatedDeviceId = device.id;
+          clearTimeout(helloTimer);
           connections.set(device.id, {
             deviceId: device.id,
             ws,

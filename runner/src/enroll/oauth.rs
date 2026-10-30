@@ -49,7 +49,7 @@ pub async fn run_enroll(gateway_url: Option<String>, device_name: Option<String>
         .post(format!("{auth_base}/api/auth/device/code"))
         .json(&json!({
             "client_id": RUNNER_OAUTH_CLIENT_ID,
-            "scope": "openid profile offline_access",
+            "scope": "openid profile offline_access agentbridge:devices",
             "resource": resource
         }))
         .send()

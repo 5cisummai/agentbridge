@@ -11,6 +11,9 @@ import { jwt } from "better-auth/plugins";
 import type { GatewayDb } from "../db/client.js";
 import * as authSchema from "../db/auth-schema.js";
 import type { Env } from "../env.js";
+import { sendVerificationEmail } from "./email/send-verification.js";
+import { buildAuthRateLimit } from "./rate-limit.js";
+import { buildSocialProviders } from "./social-providers.js";
 
 export const AGENTBRIDGE_SCOPES = [
   "openid",
@@ -23,6 +26,8 @@ export const AGENTBRIDGE_SCOPES = [
   "agentbridge:admin",
 ] as const;
 
+export const DEVICE_ENROLL_SCOPE = "agentbridge:devices";
+
 export function createAuth(env: Env, gatewayDb: GatewayDb) {
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
@@ -34,19 +39,37 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
     }),
     emailAndPassword: {
       enabled: true,
+      requireEmailVerification: true,
     },
-    socialProviders:
-      env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
-        ? {
-            github: {
-              clientId: env.GITHUB_CLIENT_ID,
-              clientSecret: env.GITHUB_CLIENT_SECRET,
-            },
-          }
-        : undefined,
+    emailVerification: {
+      sendOnSignUp: true,
+      sendOnSignIn: true,
+      autoSignInAfterVerification: true,
+      sendVerificationEmail: async ({ user, url }) => {
+        // Fire-and-forget to avoid timing attacks (Better Auth guidance).
+        void sendVerificationEmail(env, {
+          email: user.email,
+          name: user.name,
+          url,
+        }).catch((error: unknown) => {
+          console.error(
+            "[auth] verification email delivery failed",
+            error instanceof Error ? error.message : "unknown error",
+          );
+        });
+      },
+    },
+    socialProviders: buildSocialProviders(env),
+    rateLimit: buildAuthRateLimit(env),
     advanced: {
       database: {
         joins: false,
+      },
+      ipAddress: {
+        ipAddressHeaders:
+          env.NODE_ENV === "production"
+            ? ["cf-connecting-ip"]
+            : ["x-forwarded-for"],
       },
     },
     plugins: [
@@ -57,7 +80,9 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
         resource: env.MCP_RESOURCE,
         scopes: [...AGENTBRIDGE_SCOPES],
         allowDynamicClientRegistration: true,
-        allowUnauthenticatedClientRegistration: true,
+        allowUnauthenticatedClientRegistration:
+          env.NODE_ENV !== "production" ||
+          env.ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION === "true",
         clientRegistrationDefaultApplicationType: "infer",
         clientRegistrationDefaultResources: [env.MCP_RESOURCE],
         resources: [

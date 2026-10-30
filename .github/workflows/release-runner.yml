@@ -1,0 +1,104 @@
+name: Release runner
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.asset_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_name: agentbridge-linux-x86_64
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            asset_name: agentbridge-linux-aarch64
+          - os: macos-14
+            target: aarch64-apple-darwin
+            asset_name: agentbridge-darwin-aarch64
+          - os: macos-14
+            target: x86_64-apple-darwin
+            asset_name: agentbridge-darwin-x86_64
+
+    defaults:
+      run:
+        working-directory: runner
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.82
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: runner
+
+      - name: Verify tag matches crate version
+        shell: bash
+        run: |
+          crate_version="$(awk -F '"' '/^version = / { print $2; exit }' Cargo.toml)"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$crate_version" != "$tag_version" ]; then
+            echo "Tag v${tag_version} does not match runner/Cargo.toml version ${crate_version}" >&2
+            exit 1
+          fi
+
+      - name: Build release binary
+        run: cargo build --release --locked --target "${{ matrix.target }}"
+
+      - name: Prepare release asset
+        shell: bash
+        run: |
+          mkdir -p ../release-assets
+          cp "target/${{ matrix.target }}/release/agentbridge" \
+            "../release-assets/${{ matrix.asset_name }}"
+          chmod 0755 "../release-assets/${{ matrix.asset_name }}"
+          strip "../release-assets/${{ matrix.asset_name }}"
+
+      - name: Upload release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: release-assets/${{ matrix.asset_name }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: agentbridge-*
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: release-assets
+        run: sha256sum agentbridge-* > SHA256SUMS
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/agentbridge-*
+            release-assets/SHA256SUMS

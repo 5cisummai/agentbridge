@@ -4,7 +4,11 @@ import type { Auth } from "../auth/index.js";
 import type { Env } from "../env.js";
 import type { GatewayDb } from "../db/client.js";
 import * as authSchema from "../db/auth-schema.js";
-import { RUNNER_OAUTH_CLIENT_ID, RUNNER_OAUTH_GRANTS } from "../auth/index.js";
+import {
+  DEVICE_ENROLL_SCOPE,
+  RUNNER_OAUTH_CLIENT_ID,
+  RUNNER_OAUTH_GRANTS,
+} from "../auth/index.js";
 
 /** Ensures the public runner OAuth client exists for RFC 8628 enroll. */
 export async function ensureRunnerOAuthClient(
@@ -26,11 +30,20 @@ export async function ensureRunnerOAuthClient(
       tokenEndpointAuthMethod: "none",
       applicationType: "native",
       grantTypes: [...RUNNER_OAUTH_GRANTS],
-      scopes: ["openid", "profile", "offline_access"],
+    scopes: ["openid", "profile", "offline_access", "agentbridge:devices"],
       disabled: false,
       public: true,
       type: "native",
     });
+  } else {
+    await db
+      .update(authSchema.oauthClient)
+      .set({
+        scopes: Array.from(
+          new Set([...(existing[0]?.scopes ?? []), DEVICE_ENROLL_SCOPE]),
+        ),
+      })
+      .where(eq(authSchema.oauthClient.clientId, RUNNER_OAUTH_CLIENT_ID));
   }
   await db
     .insert(authSchema.oauthResource)

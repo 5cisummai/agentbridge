@@ -1,6 +1,7 @@
 import { createMcpProtectedRequestHandler } from "@better-auth/mcp";
-import type { Auth } from "../auth/index.js";
+import { DEVICE_ENROLL_SCOPE, type Auth } from "../auth/index.js";
 import type { Env } from "../env.js";
+import { hasScope } from "../mcp/scopes.js";
 
 export async function verifyOAuthUserRequest(
   auth: Auth,
@@ -21,7 +22,10 @@ export async function verifyOAuthUserRequest(
       jwksUrl: `${baseURL}/jwks`,
     },
     async (_req, accessTokenClaims) => {
-      if (typeof accessTokenClaims.sub === "string") {
+      if (
+        typeof accessTokenClaims.sub === "string" &&
+        hasScope(accessTokenClaims.scope, DEVICE_ENROLL_SCOPE)
+      ) {
         userId = accessTokenClaims.sub;
       }
       return new Response("ok");

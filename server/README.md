@@ -4,6 +4,8 @@ TypeScript relay: Better Auth (OAuth 2.1 + MCP 2026-07-28), Postgres, WebSocket 
 
 MCP HTTP serves **2026-07-28** and, for now, **legacy 2025-era clients** via `createMcpHandler({ legacy: "stateless" })` so Grok/Cursor-class clients that still use `initialize` can connect. Legacy session GET/DELETE still return 405 in this mode. Prefer tightening back to `legacy: "reject"` once those clients negotiate the new protocol.
 
+**Environment variables and end-to-end setup:** [`../docs/SETUP.md`](../docs/SETUP.md).
+
 ## Local dev
 
 ```bash
@@ -12,9 +14,27 @@ cp .env.example .env
 docker compose -f ../docker-compose.yml up -d postgres
 pnpm install   # if pnpm blocks builds: pnpm approve-builds
 pnpm exec drizzle-kit push # fresh local database; review the proposed schema
+pnpm --dir ../web build    # OAuth UI (React) for /sign-in /consent /device
 pnpm lint      # oxlint (see .oxlintrc.json)
 pnpm dev
 ```
+
+The gateway serves the built SPA from `../web/dist` (or `WEB_DIST`). Rebuild the UI after changes, or run `pnpm --dir ../web build --watch` alongside `pnpm dev`.
+
+### Environment (summary)
+
+Copy `cp .env.example .env`. Validated in `src/env.ts`.
+
+| Required | Description |
+|----------|-------------|
+| `DATABASE_URL` | Postgres |
+| `BETTER_AUTH_SECRET` | Session signing (min 32 chars) |
+| `BETTER_AUTH_URL` | Public gateway origin |
+| `MCP_RESOURCE` | MCP OAuth resource URL (typically `{BETTER_AUTH_URL}/mcp`) |
+
+Optional: `GITHUB_*`, `GOOGLE_*`, `RESEND_API_KEY`, `RESEND_FROM`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `MAX_THREADS_PER_DEVICE`, `MAX_EVENTS_PER_THREAD`, `APPROVAL_TIMEOUT_MS`, `PORT`, `NODE_ENV`. Unset `RESEND_API_KEY` → verification links logged to stdout.
+
+Undocumented in schema but used: `WEB_DIST` (SPA root). See SETUP.md for production URL alignment and troubleshooting.
 
 Repo-root Prettier (`pnpm format` from the monorepo root) formats markdown and TypeScript across the tree.
 
@@ -68,10 +88,11 @@ output archive.
 
 ## Mock runner
 
-After enrolling a device (`POST /v1/devices/enroll` with a user OAuth token):
+After enrolling a device (runner `enroll` or `POST /v1/devices/enroll` with a user OAuth token):
 
 ```bash
-DEVICE_ID=... DEVICE_SECRET=... pnpm mock-runner
+DEVICE_ID=<from enroll> DEVICE_SECRET=<from enroll> pnpm mock-runner
+# optional: GATEWAY_URL=ws://localhost:8787/ws
 ```
 
 ## MCP
