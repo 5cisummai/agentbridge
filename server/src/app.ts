@@ -28,9 +28,7 @@ export function createApp(deps: AppDeps): Hono {
 
   app.get("/healthz", (c) => c.json({ ok: true }));
 
-  app.get("/sign-in", (c) =>
-    c.html(signInPage(deps.env.BETTER_AUTH_URL)),
-  );
+  app.get("/sign-in", (c) => c.html(signInPage(deps.env.BETTER_AUTH_URL)));
   app.get("/consent", (c) => c.html(consentPage()));
   app.get("/device", (c) => c.html(devicePage()));
 

@@ -11,8 +11,11 @@ export async function appendThreadEvent(
   deviceId?: string,
 ) {
   return db.transaction(async (tx) => {
-    const [thread] = await tx.select().from(threads)
-      .where(eq(threads.id, event.thread_id)).for("update");
+    const [thread] = await tx
+      .select()
+      .from(threads)
+      .where(eq(threads.id, event.thread_id))
+      .for("update");
     if (!thread || (deviceId !== undefined && thread.deviceId !== deviceId)) {
       throw new Error("thread_not_found");
     }
@@ -20,21 +23,38 @@ export async function appendThreadEvent(
     if (deviceId !== undefined && event.seq <= thread.runnerSeq) return;
     const seq = thread.eventSeq + 1;
     await tx.insert(threadEvents).values({
-      threadId: event.thread_id, seq, type: event.type,
-      payload: { ...event.payload, ...(event.raw === undefined ? {} : { raw: event.raw }) },
+      threadId: event.thread_id,
+      seq,
+      type: event.type,
+      payload: {
+        ...event.payload,
+        ...(event.raw === undefined ? {} : { raw: event.raw }),
+      },
     });
-    await tx.update(threads).set({
-      eventSeq: seq,
-      ...(deviceId === undefined ? {} : { runnerSeq: event.seq }),
-      ...(event.type === "exit" ? {
-        status: thread.status === "killed" ? "killed" as const : "exited" as const,
-        exitedAt: new Date(),
-      } : {}),
-    }).where(eq(threads.id, event.thread_id));
-    await tx.delete(threadEvents).where(and(
-      eq(threadEvents.threadId, event.thread_id),
-      sql`${threadEvents.seq} <= ${seq - env.MAX_EVENTS_PER_THREAD}`,
-    ));
+    await tx
+      .update(threads)
+      .set({
+        eventSeq: seq,
+        ...(deviceId === undefined ? {} : { runnerSeq: event.seq }),
+        ...(event.type === "exit"
+          ? {
+              status:
+                thread.status === "killed"
+                  ? ("killed" as const)
+                  : ("exited" as const),
+              exitedAt: new Date(),
+            }
+          : {}),
+      })
+      .where(eq(threads.id, event.thread_id));
+    await tx
+      .delete(threadEvents)
+      .where(
+        and(
+          eq(threadEvents.threadId, event.thread_id),
+          sql`${threadEvents.seq} <= ${seq - env.MAX_EVENTS_PER_THREAD}`,
+        ),
+      );
   });
 }
 

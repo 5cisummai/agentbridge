@@ -109,12 +109,12 @@ sequenceDiagram
 
 ## 3. Components
 
-| Component | Language | Role |
-|-----------|----------|------|
-| **Gateway / relay** | TypeScript | Auth gateway, MCP server, WS hub, approval queue, device registry |
-| **Runner** | Rust | PTY processes, profiles DB, path policy, device-side execution |
-| **Protocol** | Shared JSON Schema / docs | JSON-RPC methods + event types between gateway ↔ runner |
-| **MCP surface** | TypeScript (on gateway) | Tools for threads, devices, profiles, approvals |
+| Component           | Language                  | Role                                                              |
+| ------------------- | ------------------------- | ----------------------------------------------------------------- |
+| **Gateway / relay** | TypeScript                | Auth gateway, MCP server, WS hub, approval queue, device registry |
+| **Runner**          | Rust                      | PTY processes, profiles DB, path policy, device-side execution    |
+| **Protocol**        | Shared JSON Schema / docs | JSON-RPC methods + event types between gateway ↔ runner           |
+| **MCP surface**     | TypeScript (on gateway)   | Tools for threads, devices, profiles, approvals                   |
 
 ---
 
@@ -122,130 +122,130 @@ sequenceDiagram
 
 ### 4.1 Connectivity
 
-| Decision | Choice |
-|----------|--------|
-| Reach device | **Always via gateway/relay** |
-| Direct runner URL in prod | **No** (security / NAT / consistent auth) |
-| Runner network posture | **Outbound WSS only** (no inbound ports required on device) |
+| Decision                            | Choice                                                                       |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| Reach device                        | **Always via gateway/relay**                                                 |
+| Direct runner URL in prod           | **No** (security / NAT / consistent auth)                                    |
+| Runner network posture              | **Outbound WSS only** (no inbound ports required on device)                  |
 | Control protocol (gateway ↔ runner) | **WebSocket + JSON-RPC** (bidirectional, streaming notifications, reconnect) |
 
 Reconnect: gateway may drop; **runner keeps threads alive**. Thread lifetime is **not** tied to MCP client disconnect. After reconnect, gateway re-attaches to the same device connection and resumes event streaming from a sequence cursor.
 
 ### 4.2 Multi-tenancy & deployment
 
-| Decision | Choice |
-|----------|--------|
-| Cloud gateway | Multi-tenant (users/orgs share a hosted deployment) |
-| Self-hosted gateway | **Same product and feature set** as cloud (not a stripped single-tenant fork) |
-| Packaging | **One Docker image** for the TS gateway; run the same image in cloud or on your infra |
-| Database (gateway) | **Postgres** (required for Better Auth, devices, approvals, audit) |
-| Database (runner) | **SQLite** (profiles and local runner state) |
+| Decision            | Choice                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| Cloud gateway       | Multi-tenant (users/orgs share a hosted deployment)                                   |
+| Self-hosted gateway | **Same product and feature set** as cloud (not a stripped single-tenant fork)         |
+| Packaging           | **One Docker image** for the TS gateway; run the same image in cloud or on your infra |
+| Database (gateway)  | **Postgres** (required for Better Auth, devices, approvals, audit)                    |
+| Database (runner)   | **SQLite** (profiles and local runner state)                                          |
 
 Self-host compose typically: `agentbridge` container + **Postgres** (and optional OTEL collector). Prefer Postgres as a sibling service even when the app is “one image”; do not put production multi-user auth in SQLite on the gateway.
 
 ### 4.3 Stack split
 
-| Piece | Stack |
-|-------|--------|
-| Gateway (auth, MCP, routing, WS hub) | TypeScript + Better Auth + MCP SDK |
-| Runner | Rust (static binary) |
-| MCP auth | `@better-auth/mcp` (+ JWT, CIMD as required by MCP 2026 profile) |
+| Piece                                | Stack                                                            |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| Gateway (auth, MCP, routing, WS hub) | TypeScript + Better Auth + MCP SDK                               |
+| Runner                               | Rust (static binary)                                             |
+| MCP auth                             | `@better-auth/mcp` (+ JWT, CIMD as required by MCP 2026 profile) |
 
 ### 4.4 CLI execution model
 
-| Decision | Choice |
-|----------|--------|
-| Subprocess mode | **PTY** for agent CLIs |
+| Decision                | Choice                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| Subprocess mode         | **PTY** for agent CLIs                                                        |
 | Codex / Claude / Cursor | Spawn as **standard PTY processes** (not OpenAI `exec-server` protocol in v1) |
-| Profiles | User-configurable; stored in **runner SQLite** |
-| First-class adapters | Codex, Claude Code, Cursor agent (+ generic PTY fallback) |
+| Profiles                | User-configurable; stored in **runner SQLite**                                |
+| First-class adapters    | Codex, Claude Code, Cursor agent (+ generic PTY fallback)                     |
 
 Adapters may parse stream-json / structured lines into normalized events; raw PTY remains available for debug.
 
 ### 4.5 Thread lifecycle
 
-| Decision | Choice |
-|----------|--------|
-| MCP client disconnect | **Threads keep running** until exit, explicit kill, or policy |
-| Thread identity | Canonical **`thread_id` (UUID)** |
-| Display name | Optional **`name`**; **duplicates allowed**; UUID is always canonical |
-| History / list | Filter/list by name helper; identity remains UUID |
+| Decision              | Choice                                                            |
+| --------------------- | ----------------------------------------------------------------- |
+| MCP client disconnect | **Threads keep running** until exit, explicit kill, or policy     |
+| Thread identity       | Canonical `thread_id` **(UUID)**                                  |
+| Display name          | Optional `name`; **duplicates allowed**; UUID is always canonical |
+| History / list        | Filter/list by name helper; identity remains UUID                 |
 
 ### 4.6 Device identity & routing
 
-| Decision | Choice |
-|----------|--------|
-| Canonical device key | **`device_id` (UUID)** |
-| Human label | **`device_name`** (display name) **attached to** that UUID |
-| MCP exposure | Tools accept **`device_id`**; responses and listings always include **`device_id` + `device_name`** so models can choose the right machine |
-| Resolution | Optional helper: resolve `device_name` → `device_id` when unique in the user’s/org’s device set; on ambiguity, return error + candidates |
-| Default device | User/org may set a **default `device_id`**; mutating tools omit `device_id` only if a default is set |
+| Decision             | Choice                                                                                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Canonical device key | `device_id` **(UUID)**                                                                                                                   |
+| Human label          | `device_name` (display name) **attached to** that UUID                                                                                   |
+| MCP exposure         | Tools accept `device_id`; responses and listings always include `device_id` **+** `device_name` so models can choose the right machine   |
+| Resolution           | Optional helper: resolve `device_name` → `device_id` when unique in the user’s/org’s device set; on ambiguity, return error + candidates |
+| Default device       | User/org may set a **default** `device_id`; mutating tools omit `device_id` only if a default is set                                     |
 
 ### 4.7 Profiles (MCP-first, device-authoritative)
 
-| Decision | Choice |
-|----------|--------|
-| Source of truth | **Runner SQLite (per device)** |
-| How users configure | MCP tools (`profiles_list`, `profiles_upsert`, …) **forwarded to the target device** |
-| File export | Optional import/export later; not the primary edit path |
-| Secrets | Env **values** stay on the device; MCP may set **env var names** / references, not relay-held secrets |
+| Decision            | Choice                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| Source of truth     | **Runner SQLite (per device)**                                                                        |
+| How users configure | MCP tools (`profiles_list`, `profiles_upsert`, …) **forwarded to the target device**                  |
+| File export         | Optional import/export later; not the primary edit path                                               |
+| Secrets             | Env **values** stay on the device; MCP may set **env var names** / references, not relay-held secrets |
 
 **Why device-authoritative:** CLI install paths and OS differ per machine. Relay stores device registry + auth, not profile command templates (except ephemeral cache for UI if needed).
 
 ### 4.8 Workspace / cwd
 
-| Decision | Choice |
-|----------|--------|
-| Spawn parameter | Absolute **`cwd`** on the device |
-| Security | **Allowlisted roots** on the runner (see §6) |
+| Decision        | Choice                                       |
+| --------------- | -------------------------------------------- |
+| Spawn parameter | Absolute `cwd` on the device                 |
+| Security        | **Allowlisted roots** on the runner (see §6) |
 
 ### 4.9 Approvals
 
-| Decision | Choice |
-|----------|--------|
-| Mid-run CLI prompts (run command, etc.) | Surface as **`approval_required` events**; queue on gateway |
-| Response path | MCP tool **`approvals_respond`** (approve / deny + optional note) |
-| Timeout | **Fail closed**: default **15 minutes** → deny + `approval_timeout` event; thread unblocks as denied |
-| Overrides | Soft: per-profile timeout / policy later; default remains fail-closed |
+| Decision                                | Choice                                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Mid-run CLI prompts (run command, etc.) | Surface as `approval_required` **events**; queue on gateway                                          |
+| Response path                           | MCP tool `approvals_respond` (approve / deny + optional note)                                        |
+| Timeout                                 | **Fail closed**: default **15 minutes** → deny + `approval_timeout` event; thread unblocks as denied |
+| Overrides                               | Soft: per-profile timeout / policy later; default remains fail-closed                                |
 
 ### 4.10 Limits
 
-| Decision | Choice |
-|----------|--------|
-| Resource limits | **Soft defaults** (max concurrent threads, max buffered output, idle hints) |
-| Overrides | Per-profile / MCP-configurable within soft bounds; document hard ceilings only if needed later |
+| Decision        | Choice                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------- |
+| Resource limits | **Soft defaults** (max concurrent threads, max buffered output, idle hints)                    |
+| Overrides       | Per-profile / MCP-configurable within soft bounds; document hard ceilings only if needed later |
 
 ### 4.11 Output contract (MCP)
 
-| Decision | Choice |
-|----------|--------|
-| Default | **Normalized structured events** (`assistant`, `tool`, `stderr`, `exit`, `approval_required`, …) |
-| Raw PTY | Available via `include_raw: true` (or equivalent) for debugging |
-| Goal | Downstream coding agents consume structure without parsing ANSI |
+| Decision | Choice                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| Default  | **Normalized structured events** (`assistant`, `tool`, `stderr`, `exit`, `approval_required`, …) |
+| Raw PTY  | Available via `include_raw: true` (or equivalent) for debugging                                  |
+| Goal     | Downstream coding agents consume structure without parsing ANSI                                  |
 
 ### 4.12 Auth & MCP hosting
 
-| Decision | Choice |
-|----------|--------|
-| User / org auth | **Better Auth on the gateway only** |
-| MCP attachment | MCP is **part of the gateway** (cloud or self-host same URL shape) |
-| MCP transport | **HTTP MCP** protected by Better Auth (`requireMcpAuth` / protected resource) |
-| Runner enrollment | **OAuth device authorization**: runner shows a code; user confirms in gateway web UI (`/device`) |
-| Runner ↔ gateway auth | **Device credential** issued at enroll (not the user’s interactive MCP token) |
+| Decision              | Choice                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| User / org auth       | **Better Auth on the gateway only**                                                              |
+| MCP attachment        | MCP is **part of the gateway** (cloud or self-host same URL shape)                               |
+| MCP transport         | **HTTP MCP** protected by Better Auth (`requireMcpAuth` / protected resource)                    |
+| Runner enrollment     | **OAuth device authorization**: runner shows a code; user confirms in gateway web UI (`/device`) |
+| Runner ↔ gateway auth | **Device credential** issued at enroll (not the user’s interactive MCP token)                    |
 
 Better Auth’s MCP plugin makes the gateway an **OAuth authorization server + protected MCP resource**. It does **not** replace the runner WebSocket; it secures MCP clients.
 
 ### 4.13 Observability & license
 
-| Decision | Choice |
-|----------|--------|
-| Telemetry | **OpenTelemetry** from gateway and runner |
+| Decision     | Choice                                             |
+| ------------ | -------------------------------------------------- |
+| Telemetry    | **OpenTelemetry** from gateway and runner          |
 | Distribution | **Open-source core** (gateway + runner + protocol) |
 
 ### 4.14 Runner install
 
-| Decision | Choice |
-|----------|--------|
+| Decision     | Choice                                          |
+| ------------ | ----------------------------------------------- |
 | Distribution | Static binary via **install script / Homebrew** |
 
 ---
@@ -256,21 +256,21 @@ Scopes are enforced at the MCP boundary. Holding a valid access token is not eno
 
 ### 5.1 Base OAuth scopes
 
-| Scope | Purpose |
-|-------|---------|
-| `openid` | Subject / identity |
-| `profile` | Display name / profile claims |
+| Scope            | Purpose                                   |
+| ---------------- | ----------------------------------------- |
+| `openid`         | Subject / identity                        |
+| `profile`        | Display name / profile claims             |
 | `offline_access` | Refresh tokens for long-lived MCP clients |
 
 ### 5.2 agentbridge MCP scopes
 
-| Scope | Purpose |
-|-------|---------|
-| `agentbridge:devices` | List devices, read status, set default device |
-| `agentbridge:threads` | Spawn, send, read events, status, kill threads |
-| `agentbridge:profiles` | List / upsert / delete profiles on a device (forwarded) |
-| `agentbridge:approvals` | List pending approvals and respond |
-| `agentbridge:admin` | Sensitive ops: manage allowlisted roots, force disconnect, org-level admin |
+| Scope                   | Purpose                                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `agentbridge:devices`   | List devices, read status, set default device                              |
+| `agentbridge:threads`   | Spawn, send, read events, status, kill threads                             |
+| `agentbridge:profiles`  | List / upsert / delete profiles on a device (forwarded)                    |
+| `agentbridge:approvals` | List pending approvals and respond                                         |
+| `agentbridge:admin`     | Sensitive ops: manage allowlisted roots, force disconnect, org-level admin |
 
 **Recommended client defaults**
 
@@ -284,13 +284,13 @@ Step-up: tools that need more privilege return `insufficient_scope` so the MCP c
 
 ## 6. Path allowlist policy (cwd security)
 
-Spawn always takes an absolute **`cwd`**. The runner **rejects** paths that fail policy.
+Spawn always takes an absolute `cwd`. The runner **rejects** paths that fail policy.
 
 ### 6.1 Allowed roots
 
-- Runner config / SQLite holds **`allowed_roots`**: a list of absolute directory prefixes.
+- Runner config / SQLite holds `allowed_roots`: a list of absolute directory prefixes.
 - After enroll, if the list is empty, seed a **conservative default**: the enrolling OS user’s home directory (`$HOME` / `%USERPROFILE%`). Operators can remove it and register narrower roots.
-- Additional roots: MCP **`workspaces_add_root`** (requires `agentbridge:admin`) or local runner CLI.
+- Additional roots: MCP `workspaces_add_root` (requires `agentbridge:admin`) or local runner CLI.
 
 ### 6.2 Validation algorithm (every spawn)
 
@@ -314,41 +314,41 @@ Transport: **WebSocket**, messages: **JSON-RPC 2.0** requests/responses plus **s
 
 Illustrative methods (names may refine in `protocol/`):
 
-| Method | Direction | Purpose |
-|--------|-----------|---------|
-| `device.hello` | Runner → Gateway | Present device credential, capabilities, name |
-| `device.heartbeat` | Runner → Gateway | Liveness |
-| `thread.spawn` | Gateway → Runner | profile, cwd, env overrides, optional name, initial input |
-| `thread.send` | Gateway → Runner | stdin / next user turn |
-| `thread.kill` | Gateway → Runner | Terminate |
-| `thread.list` | Gateway → Runner | Running/retained threads |
-| `thread.events` / notifications `thread.event` | Runner → Gateway | Sequenced events |
-| `profile.list` / `profile.upsert` / `profile.delete` | Gateway → Runner | Device-authoritative profiles |
-| `workspace.list_roots` / `workspace.add_root` / `workspace.remove_root` | Gateway → Runner | Allowlist management |
-| `approval.submit` | Runner → Gateway | Mid-run approval needed |
-| `approval.resolve` | Gateway → Runner | User/agent decision |
+| Method                                                                  | Direction        | Purpose                                                   |
+| ----------------------------------------------------------------------- | ---------------- | --------------------------------------------------------- |
+| `device.hello`                                                          | Runner → Gateway | Present device credential, capabilities, name             |
+| `device.heartbeat`                                                      | Runner → Gateway | Liveness                                                  |
+| `thread.spawn`                                                          | Gateway → Runner | profile, cwd, env overrides, optional name, initial input |
+| `thread.send`                                                           | Gateway → Runner | stdin / next user turn                                    |
+| `thread.kill`                                                           | Gateway → Runner | Terminate                                                 |
+| `thread.list`                                                           | Gateway → Runner | Running/retained threads                                  |
+| `thread.events` / notifications `thread.event`                          | Runner → Gateway | Sequenced events                                          |
+| `profile.list` / `profile.upsert` / `profile.delete`                    | Gateway → Runner | Device-authoritative profiles                             |
+| `workspace.list_roots` / `workspace.add_root` / `workspace.remove_root` | Gateway → Runner | Allowlist management                                      |
+| `approval.submit`                                                       | Runner → Gateway | Mid-run approval needed                                   |
+| `approval.resolve`                                                      | Gateway → Runner | User/agent decision                                       |
 
-Events carry a monotonic **`seq` per thread** for resume after reconnect.
+Events carry a monotonic `seq` **per thread** for resume after reconnect.
 
 ---
 
 ## 8. MCP tool surface (sketch)
 
-| Tool | Scopes | Notes |
-|------|--------|-------|
-| `devices_list` | `agentbridge:devices` | Returns `device_id`, `device_name`, online, last_seen |
-| `devices_set_default` | `agentbridge:devices` | Sets default `device_id` |
-| `threads_spawn` | `agentbridge:threads` | `device_id?`, `profile`, `cwd`, `name?`, prompt |
-| `threads_send` | `agentbridge:threads` | |
-| `threads_events` | `agentbridge:threads` | structured default; optional raw |
-| `threads_status` / `threads_list` | `agentbridge:threads` | |
-| `threads_kill` | `agentbridge:threads` | |
-| `profiles_list` / `profiles_upsert` / `profiles_delete` | `agentbridge:profiles` | **Requires `device_id`** (or default device) |
-| `approvals_list` / `approvals_respond` | `agentbridge:approvals` | |
-| `workspaces_list_roots` | `agentbridge:devices` or `admin` | Read allowlist |
-| `workspaces_add_root` / `workspaces_remove_root` | `agentbridge:admin` | |
+| Tool                                                    | Scopes                           | Notes                                                 |
+| ------------------------------------------------------- | -------------------------------- | ----------------------------------------------------- |
+| `devices_list`                                          | `agentbridge:devices`            | Returns `device_id`, `device_name`, online, last_seen |
+| `devices_set_default`                                   | `agentbridge:devices`            | Sets default `device_id`                              |
+| `threads_spawn`                                         | `agentbridge:threads`            | `device_id?`, `profile`, `cwd`, `name?`, prompt       |
+| `threads_send`                                          | `agentbridge:threads`            |                                                       |
+| `threads_events`                                        | `agentbridge:threads`            | structured default; optional raw                      |
+| `threads_status` / `threads_list`                       | `agentbridge:threads`            |                                                       |
+| `threads_kill`                                          | `agentbridge:threads`            |                                                       |
+| `profiles_list` / `profiles_upsert` / `profiles_delete` | `agentbridge:profiles`           | **Requires** `device_id` (or default device)          |
+| `approvals_list` / `approvals_respond`                  | `agentbridge:approvals`          |                                                       |
+| `workspaces_list_roots`                                 | `agentbridge:devices` or `admin` | Read allowlist                                        |
+| `workspaces_add_root` / `workspaces_remove_root`        | `agentbridge:admin`              |                                                       |
 
-Every mutating tool that targets a machine resolves **`device_id`** (explicit or default). Responses that mention a device include **`device_id` + `device_name`**.
+Every mutating tool that targets a machine resolves `device_id` (explicit or default). Responses that mention a device include `device_id` **+** `device_name`.
 
 ---
 
@@ -367,12 +367,12 @@ Every mutating tool that targets a machine resolves **`device_id`** (explicit or
 
 ## 10. Comparison to related systems
 
-| System | What we take | What we are not |
-|--------|--------------|-----------------|
-| **T3 Code** | Environment owns execution; clients use WS RPC; access routes vary | Full IDE/product with git/FS UI |
-| **Codex cloud exec-server** | Outbound WS rendezvous; cloud harness vs local executor | Locked to OpenAI registry / Noise path |
-| **Codex App Server** | JSON-RPC threads + notifications | stdio-only harness API |
-| **Cursor Remote SSH** | Long-lived remote process | SSH + editor server, not MCP thread broker |
+| System                      | What we take                                                       | What we are not                            |
+| --------------------------- | ------------------------------------------------------------------ | ------------------------------------------ |
+| **T3 Code**                 | Environment owns execution; clients use WS RPC; access routes vary | Full IDE/product with git/FS UI            |
+| **Codex cloud exec-server** | Outbound WS rendezvous; cloud harness vs local executor            | Locked to OpenAI registry / Noise path     |
+| **Codex App Server**        | JSON-RPC threads + notifications                                   | stdio-only harness API                     |
+| **Cursor Remote SSH**       | Long-lived remote process                                          | SSH + editor server, not MCP thread broker |
 
 ---
 
@@ -406,26 +406,28 @@ agentbridge/   # or this repo renamed
 
 ## 13. Open for later (explicitly not blocking)
 
-- Optional `workspace_id` sugar over allowlisted paths  
-- Codex `exec-server` protocol bridge (in addition to PTY)  
-- E2E encryption / Noise on relay path  
-- Profile sync/export across devices  
-- Device pools / least-loaded scheduling  
+- Optional `workspace_id` sugar over allowlisted paths
+- Codex `exec-server` protocol bridge (in addition to PTY)
+- E2E encryption / Noise on relay path
+- Profile sync/export across devices
+- Device pools / least-loaded scheduling
 - Kubernetes Helm chart (compose is enough initially)
 
 ---
 
 ## 14. Glossary
 
-| Term | Meaning |
-|------|---------|
-| **Gateway / relay** | Public or self-hosted agentbridge TS service |
-| **Runner** | Rust agent on a device |
-| **Device** | One runner enrollment; identified by UUID |
-| **Profile** | Named CLI spawn template on a device |
-| **Thread** | One PTY-backed CLI session |
-| **Approval** | Mid-run human/agent decision gated through MCP |
+| Term                | Meaning                                        |
+| ------------------- | ---------------------------------------------- |
+| **Gateway / relay** | Public or self-hosted agentbridge TS service   |
+| **Runner**          | Rust agent on a device                         |
+| **Device**          | One runner enrollment; identified by UUID      |
+| **Profile**         | Named CLI spawn template on a device           |
+| **Thread**          | One PTY-backed CLI session                     |
+| **Approval**        | Mid-run human/agent decision gated through MCP |
 
 ---
 
-*Last updated: 2026-10-29 — decisions locked through design Q&A rounds 1–4 plus final lock-ins (Postgres, allowlist policy, scopes, same multi-tenant cloud/self-host, device name ↔ UUID).*
+_Last updated: 2026-10-29 — decisions locked through design Q&A rounds 1–4 plus final lock-ins (Postgres, allowlist policy, scopes, same multi-tenant cloud/self-host, device name ↔ UUID)._
+
+written by cursor through grilling me with docs

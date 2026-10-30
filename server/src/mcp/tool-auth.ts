@@ -1,9 +1,5 @@
 import { createInsufficientScopeError } from "better-auth/oauth2";
-import {
-  AGENTBRIDGE_SCOPES,
-  hasScope,
-  subjectFromClaims,
-} from "./scopes.js";
+import { AGENTBRIDGE_SCOPES, hasScope, subjectFromClaims } from "./scopes.js";
 
 export type ToolAuth = {
   userId: string;

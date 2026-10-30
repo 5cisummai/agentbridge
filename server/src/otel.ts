@@ -9,9 +9,8 @@ export function initOtel(env: Env): void {
 
   void (async () => {
     const { NodeSDK } = await import("@opentelemetry/sdk-node");
-    const { OTLPTraceExporter } = await import(
-      "@opentelemetry/exporter-trace-otlp-http"
-    );
+    const { OTLPTraceExporter } =
+      await import("@opentelemetry/exporter-trace-otlp-http");
     const sdk = new NodeSDK({
       traceExporter: new OTLPTraceExporter({
         url: `${env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces`,

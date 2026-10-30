@@ -199,7 +199,9 @@ export const oauthResource = pgTable("oauthResource", {
   signingKeyId: text("signingKeyId"),
   allowedScopes: text("allowedScopes").array(),
   customClaims: jsonb("customClaims"),
-  dpopBoundAccessTokensRequired: boolean("dpopBoundAccessTokensRequired").default(false),
+  dpopBoundAccessTokensRequired: boolean(
+    "dpopBoundAccessTokensRequired",
+  ).default(false),
   disabled: boolean("disabled").default(false),
   createdAt: timestamp("createdAt"),
   updatedAt: timestamp("updatedAt"),
@@ -207,10 +209,23 @@ export const oauthResource = pgTable("oauthResource", {
   metadata: jsonb("metadata"),
 });
 
-export const oauthClientResource = pgTable("oauthClientResource", {
-  id: text("id").primaryKey(),
-  clientId: text("clientId").notNull().references(() => oauthClient.clientId, { onDelete: "cascade" }),
-  resourceId: text("resourceId").notNull().references(() => oauthResource.identifier, { onDelete: "cascade" }),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("createdAt"),
-}, (t) => [uniqueIndex("oauthClientResource_client_resource_idx").on(t.clientId, t.resourceId)]);
+export const oauthClientResource = pgTable(
+  "oauthClientResource",
+  {
+    id: text("id").primaryKey(),
+    clientId: text("clientId")
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: "cascade" }),
+    resourceId: text("resourceId")
+      .notNull()
+      .references(() => oauthResource.identifier, { onDelete: "cascade" }),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("createdAt"),
+  },
+  (t) => [
+    uniqueIndex("oauthClientResource_client_resource_idx").on(
+      t.clientId,
+      t.resourceId,
+    ),
+  ],
+);

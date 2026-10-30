@@ -90,7 +90,10 @@ function handleRpc(
     case "thread.list": {
       reply(
         id,
-        [...threads.keys()].map((thread_id) => ({ thread_id, status: "running" })),
+        [...threads.keys()].map((thread_id) => ({
+          thread_id,
+          status: "running",
+        })),
       );
       break;
     }
@@ -152,9 +155,7 @@ function reply(
 ) {
   ws.send(
     JSON.stringify(
-      error
-        ? { jsonrpc: "2.0", id, error }
-        : { jsonrpc: "2.0", id, result },
+      error ? { jsonrpc: "2.0", id, error } : { jsonrpc: "2.0", id, result },
     ),
   );
 }

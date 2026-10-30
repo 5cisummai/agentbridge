@@ -17,7 +17,11 @@ export async function handleApprovalSubmit(
     prompt?: string;
   };
 
-  if (typeof body.thread_id !== "string" || typeof body.prompt !== "string" || !body.prompt) {
+  if (
+    typeof body.thread_id !== "string" ||
+    typeof body.prompt !== "string" ||
+    !body.prompt
+  ) {
     return;
   }
 
@@ -34,36 +38,68 @@ export async function handleApprovalSubmit(
   const approvalId = body.approval_id ?? randomUUID();
   const expiresAt = new Date(Date.now() + env.APPROVAL_TIMEOUT_MS);
 
-  await db.insert(approvals).values({
-    id: approvalId, threadId: body.thread_id, deviceId,
-    prompt: body.prompt, expiresAt, status: "pending",
-  }).onConflictDoNothing();
+  await db
+    .insert(approvals)
+    .values({
+      id: approvalId,
+      threadId: body.thread_id,
+      deviceId,
+      prompt: body.prompt,
+      expiresAt,
+      status: "pending",
+    })
+    .onConflictDoNothing();
 }
 
 // Resolved decisions form a durable outbox. Repeated delivery is safe by approval ID.
 export async function deliverApprovalDecisions(
   db: GatewayDb["db"],
-  hub: { call: (deviceId: string, method: string, params: unknown) => Promise<unknown> },
+  hub: {
+    call: (
+      deviceId: string,
+      method: string,
+      params: unknown,
+    ) => Promise<unknown>;
+  },
 ) {
-  const rows = await db.select().from(approvals)
+  const rows = await db
+    .select()
+    .from(approvals)
     .where(and(ne(approvals.status, "pending"), isNull(approvals.deliveredAt)));
   for (const approval of rows) {
     try {
       await hub.call(approval.deviceId, "approval.resolve", {
-        approval_id: approval.id, approved: approval.status === "approved",
-        note: approval.status === "timeout" ? "approval_timeout" : approval.note,
+        approval_id: approval.id,
+        approved: approval.status === "approved",
+        note:
+          approval.status === "timeout" ? "approval_timeout" : approval.note,
       });
-      await db.update(approvals).set({ deliveredAt: new Date() })
+      await db
+        .update(approvals)
+        .set({ deliveredAt: new Date() })
         .where(eq(approvals.id, approval.id));
-    } catch { /* Retain the decision for the next retry. */ }
+    } catch {
+      /* Retain the decision for the next retry. */
+    }
   }
 }
 
 export async function decideApproval(
-  db: GatewayDb["db"], id: string, status: "approved" | "denied", note?: string,
+  db: GatewayDb["db"],
+  id: string,
+  status: "approved" | "denied",
+  note?: string,
 ) {
-  const [row] = await db.update(approvals).set({ status, resolvedAt: new Date(), note })
-    .where(and(eq(approvals.id, id), eq(approvals.status, "pending"), gt(approvals.expiresAt, new Date())))
+  const [row] = await db
+    .update(approvals)
+    .set({ status, resolvedAt: new Date(), note })
+    .where(
+      and(
+        eq(approvals.id, id),
+        eq(approvals.status, "pending"),
+        gt(approvals.expiresAt, new Date()),
+      ),
+    )
     .returning();
   return row;
 }

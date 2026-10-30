@@ -8,12 +8,12 @@ This is not remote-SSH into an IDE. It is a neutral bridge: any CLI profile, you
 
 ## Repository layout
 
-| Path | Role |
-|------|------|
-| [`server/`](server/) | Gateway — Better Auth, Postgres, MCP HTTP, WebSocket hub |
-| [`runner/`](runner/) | Device runner — enroll, outbound WS, PTY threads, profiles |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Product and technical decision log |
-| [`docker-compose.yml`](docker-compose.yml) | Local Postgres (+ optional gateway image) |
+| Path                                           | Role                                                       |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| [`server/`](server/)                           | Gateway — Better Auth, Postgres, MCP HTTP, WebSocket hub   |
+| [`runner/`](runner/)                           | Device runner — enroll, outbound WS, PTY threads, profiles |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Product and technical decision log                         |
+| [`docker-compose.yml`](docker-compose.yml)     | Local Postgres (+ optional gateway image)                  |
 
 ## Quick start (local)
 

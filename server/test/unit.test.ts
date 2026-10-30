@@ -4,10 +4,7 @@ import {
   verifyDeviceSecret,
 } from "../src/services/devices.js";
 import { parseScopeClaim, hasScope } from "../src/mcp/scopes.js";
-import {
-  jsonRpcRequestSchema,
-  jsonRpcResult,
-} from "../src/protocol/rpc.js";
+import { jsonRpcRequestSchema, jsonRpcResult } from "../src/protocol/rpc.js";
 
 describe("devices", () => {
   it("hashes and verifies secrets", () => {

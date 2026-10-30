@@ -1,4 +1,7 @@
-import { decideApproval, deliverApprovalDecisions } from "../services/approvals.js";
+import {
+  decideApproval,
+  deliverApprovalDecisions,
+} from "../services/approvals.js";
 import { McpServer } from "@modelcontextprotocol/server";
 import { and, desc, eq } from "drizzle-orm";
 import * as z from "zod/v4";
@@ -6,10 +9,7 @@ import type { Auth } from "../auth/index.js";
 import type { AppDeps } from "../app.js";
 import { approvals, devices, threads, userDefaults } from "../db/schema.js";
 import { writeAudit } from "../services/audit.js";
-import {
-  getDeviceForUser,
-  resolveDeviceId,
-} from "../services/devices.js";
+import { getDeviceForUser, resolveDeviceId } from "../services/devices.js";
 import {
   countRunningThreadsOnDevice,
   listThreadEvents,
@@ -126,7 +126,10 @@ export function registerAgentbridgeTools(
       }
       const running = await countRunningThreadsOnDevice(db, device.id);
       if (running >= env.MAX_THREADS_PER_DEVICE) {
-        return mcpTextResult({ error: "thread_limit", limit: env.MAX_THREADS_PER_DEVICE });
+        return mcpTextResult({
+          error: "thread_limit",
+          limit: env.MAX_THREADS_PER_DEVICE,
+        });
       }
 
       const [thread] = await db
@@ -347,7 +350,8 @@ export function registerAgentbridgeTools(
       description: "List CLI profiles on a device",
       inputSchema: deviceIdShape,
     },
-    async (input) => forwardToDevice(AGENTBRIDGE_SCOPES.profiles, input, "profile.list", {}),
+    async (input) =>
+      forwardToDevice(AGENTBRIDGE_SCOPES.profiles, input, "profile.list", {}),
   );
 
   server.registerTool(
@@ -397,10 +401,7 @@ export function registerAgentbridgeTools(
         .from(approvals)
         .innerJoin(threads, eq(approvals.threadId, threads.id))
         .where(
-          and(
-            eq(approvals.status, "pending"),
-            eq(threads.ownerUserId, userId),
-          ),
+          and(eq(approvals.status, "pending"), eq(threads.ownerUserId, userId)),
         );
       return mcpTextResult(
         rows.map(({ approval, thread }) => ({
@@ -440,7 +441,8 @@ export function registerAgentbridgeTools(
       }
       const status = decision === "approve" ? "approved" : "denied";
       const decided = await decideApproval(db, approval_id, status, note);
-      if (!decided) return mcpTextResult({ error: "approval_expired_or_resolved" });
+      if (!decided)
+        return mcpTextResult({ error: "approval_expired_or_resolved" });
       await deliverApprovalDecisions(db, hub);
       await writeAudit(db, {
         userId,
@@ -459,7 +461,12 @@ export function registerAgentbridgeTools(
       inputSchema: deviceIdShape,
     },
     async (input) =>
-      forwardToDevice(AGENTBRIDGE_SCOPES.devices, input, "workspace.list_roots", {}),
+      forwardToDevice(
+        AGENTBRIDGE_SCOPES.devices,
+        input,
+        "workspace.list_roots",
+        {},
+      ),
   );
 
   server.registerTool(
@@ -487,8 +494,13 @@ export function registerAgentbridgeTools(
       },
     },
     async (input) =>
-      forwardToDevice(AGENTBRIDGE_SCOPES.admin, input, "workspace.remove_root", {
-        path: input.path,
-      }),
+      forwardToDevice(
+        AGENTBRIDGE_SCOPES.admin,
+        input,
+        "workspace.remove_root",
+        {
+          path: input.path,
+        },
+      ),
   );
 }

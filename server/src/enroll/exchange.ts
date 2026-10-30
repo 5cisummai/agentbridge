@@ -2,10 +2,7 @@ import type { Auth } from "../auth/index.js";
 import type { Env } from "../env.js";
 import type { GatewayDb } from "../db/client.js";
 import { devices } from "../db/schema.js";
-import {
-  generateDeviceSecret,
-  hashDeviceSecret,
-} from "../services/devices.js";
+import { generateDeviceSecret, hashDeviceSecret } from "../services/devices.js";
 import { verifyOAuthUserRequest } from "./verify-oauth.js";
 
 export async function enrollDevice(

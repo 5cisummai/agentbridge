@@ -7,13 +7,18 @@ import { deliverApprovalDecisions } from "./approvals.js";
 export async function resolveApprovalTimeouts(deps: AppDeps) {
   await deps.gatewayDb.db.transaction(async (tx) => {
     const now = new Date();
-    const expired = await tx.update(approvals)
+    const expired = await tx
+      .update(approvals)
       .set({ status: "timeout", resolvedAt: now })
-      .where(and(eq(approvals.status, "pending"), lte(approvals.expiresAt, now)))
+      .where(
+        and(eq(approvals.status, "pending"), lte(approvals.expiresAt, now)),
+      )
       .returning();
     for (const approval of expired) {
       await appendThreadEvent(tx, deps.env, {
-        thread_id: approval.threadId, seq: 0, type: "approval_timeout",
+        thread_id: approval.threadId,
+        seq: 0,
+        type: "approval_timeout",
         payload: { approval_id: approval.id },
       });
     }
@@ -26,7 +31,11 @@ export function startApprovalTimeoutJob(deps: AppDeps) {
   const interval = setInterval(() => {
     if (running) return;
     running = true;
-    void resolveApprovalTimeouts(deps).catch(console.error).finally(() => { running = false; });
+    void resolveApprovalTimeouts(deps)
+      .catch(console.error)
+      .finally(() => {
+        running = false;
+      });
   }, 30_000);
   return () => clearInterval(interval);
 }
