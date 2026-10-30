@@ -2,8 +2,7 @@
 
 This document is the source of truth for product and technical decisions for **agentbridge**: a bridge that lets MCP clients (coding agents and IDEs) remotely control long-lived CLI “threads” on user devices through a relay gateway.
 
-Working name: **agentbridge**.  
-Repository folder may still be `threads-server`; rename packages/CLIs to `agentbridge` as scaffolding lands.
+Project name: **agentbridge**.
 
 ---
 
