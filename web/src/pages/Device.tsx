@@ -3,6 +3,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { apiUrl } from "@/lib/api";
 
 type DeviceMeta = {
   client_id?: string;
@@ -32,7 +33,7 @@ export function DevicePage() {
     setUserCode(code);
     try {
       const res = await fetch(
-        `/api/auth/device?user_code=${encodeURIComponent(code)}`,
+        apiUrl(`/api/auth/device?user_code=${encodeURIComponent(code)}`),
         { credentials: "include" },
       );
       if (!res.ok) {
@@ -51,7 +52,7 @@ export function DevicePage() {
     setError("");
     setPending(true);
     try {
-      await fetch(`/api/auth/device/${path}`, {
+      await fetch(apiUrl(`/api/auth/device/${path}`), {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },

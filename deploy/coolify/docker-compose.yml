@@ -16,8 +16,8 @@ services:
 
   migrate:
     build:
-      context: ../..
-      dockerfile: server/Dockerfile
+      context: ../../server
+      dockerfile: Dockerfile
       target: migrate
     restart: "no"
     environment:
@@ -28,8 +28,8 @@ services:
 
   gateway:
     build:
-      context: ../..
-      dockerfile: server/Dockerfile
+      context: ../../server
+      dockerfile: Dockerfile
       target: runner
     restart: unless-stopped
     environment:

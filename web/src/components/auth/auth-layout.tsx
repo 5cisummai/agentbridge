@@ -5,6 +5,7 @@ import { GitHubIcon, GoogleIcon } from "@/components/auth/icons";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { apiUrl } from "@/lib/api";
 import { safeAuthNavigation } from "@/lib/safe-url";
 
 type AuthLayoutProps = {
@@ -21,7 +22,7 @@ type AuthProviders = {
 
 async function socialSignIn(provider: "github" | "google") {
   const query = new URLSearchParams(location.search);
-  const res = await fetch("/api/auth/sign-in/social", {
+  const res = await fetch(apiUrl("/api/auth/sign-in/social"), {
     method: "POST",
     headers: { "content-type": "application/json" },
     credentials: "include",
@@ -50,7 +51,7 @@ export function AuthLayout({
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/v1/auth-providers")
+    void fetch(apiUrl("/v1/auth-providers"))
       .then(async (res) => {
         if (!res.ok) return { google: false, github: false };
         return (await res.json()) as AuthProviders;

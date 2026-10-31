@@ -30,11 +30,24 @@ export const CLITHREAD_SCOPES = [
 
 export const DEVICE_ENROLL_SCOPE = "agentbridge:devices";
 
+function uiPath(env: Env, path: string): string {
+  const origin = env.WEB_ORIGIN?.replace(/\/$/, "");
+  return origin ? `${origin}${path}` : path;
+}
+
 export function createAuth(env: Env, gatewayDb: GatewayDb) {
+  const trustedOrigins = Array.from(
+    new Set(
+      [env.BETTER_AUTH_URL, env.WEB_ORIGIN].filter(
+        (value): value is string => Boolean(value),
+      ),
+    ),
+  );
+
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    trustedOrigins: [env.BETTER_AUTH_URL],
+    trustedOrigins,
     database: drizzleAdapter(gatewayDb.db, {
       provider: "pg",
       schema: authSchema,
@@ -70,15 +83,23 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
       ipAddress: {
         ipAddressHeaders:
           env.NODE_ENV === "production"
-            ? ["cf-connecting-ip"]
+            ? ["cf-connecting-ip", "x-forwarded-for"]
             : ["x-forwarded-for"],
       },
+      ...(env.AUTH_COOKIE_DOMAIN
+        ? {
+            crossSubDomainCookies: {
+              enabled: true,
+              domain: env.AUTH_COOKIE_DOMAIN,
+            },
+          }
+        : {}),
     },
     plugins: [
       jwt(),
       mcp({
-        loginPage: "/sign-in",
-        consentPage: "/consent",
+        loginPage: uiPath(env, "/sign-in"),
+        consentPage: uiPath(env, "/consent"),
         resource: env.MCP_RESOURCE,
         scopes: [...CLITHREAD_SCOPES],
         allowDynamicClientRegistration: true,
@@ -99,7 +120,7 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
         metadataProfile: "mcp-2026-07-28",
       }),
       oauthDeviceAuthorization({
-        verificationUri: "/device",
+        verificationUri: uiPath(env, "/device"),
       }),
     ],
   });

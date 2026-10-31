@@ -19,10 +19,16 @@ export type AppDeps = {
 export function createApp(deps: AppDeps): Hono {
   const app = new Hono();
 
+  const allowedOrigins = new Set(
+    [deps.env.BETTER_AUTH_URL, deps.env.WEB_ORIGIN].filter(
+      (value): value is string => Boolean(value),
+    ),
+  );
+
   app.use(
     "*",
     cors({
-      origin: deps.env.BETTER_AUTH_URL,
+      origin: (origin) => (origin && allowedOrigins.has(origin) ? origin : null),
       credentials: true,
     }),
   );

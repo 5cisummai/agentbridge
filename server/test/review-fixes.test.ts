@@ -49,7 +49,7 @@ it("consent posts the intact signed query and handles provider redirect", () => 
     path.join(webRoot, "../components/auth/password-form.tsx"),
     "utf8",
   );
-  expect(consent).toContain('fetch("/api/auth/oauth2/consent"');
+  expect(consent).toContain('apiUrl("/api/auth/oauth2/consent")');
   expect(consent).toContain("oauth_query: oauthQuery");
   expect(consent).toContain("/api/auth/oauth2/public-client?client_id=");
   expect(consent).toContain("safeAuthNavigation(data.url)");

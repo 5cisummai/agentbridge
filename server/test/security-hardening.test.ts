@@ -29,6 +29,20 @@ describe("production security configuration", () => {
       }).NODE_ENV,
     ).toBe("production");
   });
+
+  it("accepts split frontend and API origins", () => {
+    const env = parseEnv({
+      ...baseEnv(),
+      NODE_ENV: "production",
+      RESEND_API_KEY: "re_test_key",
+      BETTER_AUTH_URL: "https://api.clithread.dev",
+      MCP_RESOURCE: "https://api.clithread.dev/mcp",
+      WEB_ORIGIN: "https://clithread.dev",
+      AUTH_COOKIE_DOMAIN: ".clithread.dev",
+    });
+    expect(env.WEB_ORIGIN).toBe("https://clithread.dev");
+    expect(env.AUTH_COOKIE_DOMAIN).toBe(".clithread.dev");
+  });
 });
 
 describe("enrollment authorization and input", () => {

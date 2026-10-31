@@ -9,6 +9,10 @@ const envSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.string().url(),
   MCP_RESOURCE: z.string().url(),
+  /** Public SPA origin when UI is hosted separately (e.g. https://clithread.dev). */
+  WEB_ORIGIN: z.string().url().optional(),
+  /** Cookie Domain for shared auth across WEB_ORIGIN and BETTER_AUTH_URL (e.g. .clithread.dev). */
+  AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),

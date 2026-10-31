@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { apiUrl } from "@/lib/api";
 import { safeAuthNavigation, safeSameOriginPath } from "@/lib/safe-url";
 
 type PasswordFormProps = {
@@ -24,7 +25,7 @@ export function PasswordForm({ mode }: PasswordFormProps) {
     setError(null);
     setInfo(null);
     try {
-      const res = await fetch("/api/auth/send-verification-email", {
+      const res = await fetch(apiUrl("/api/auth/send-verification-email"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "include",
@@ -53,8 +54,9 @@ export function PasswordForm({ mode }: PasswordFormProps) {
 
     const query = new URLSearchParams(location.search);
     const trimmedEmail = email.trim();
-    const endpoint =
-      mode === "signup" ? "/api/auth/sign-up/email" : "/api/auth/sign-in/email";
+    const endpoint = apiUrl(
+      mode === "signup" ? "/api/auth/sign-up/email" : "/api/auth/sign-in/email",
+    );
 
     try {
       const res = await fetch(endpoint, {

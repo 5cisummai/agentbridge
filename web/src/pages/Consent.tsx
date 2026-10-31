@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { apiUrl } from "@/lib/api";
 import {
   safeAuthNavigation,
   safeHttpsUrl,
@@ -56,7 +57,9 @@ export function ConsentPage() {
     let cancelled = false;
 
     void fetch(
-      `/api/auth/oauth2/public-client?client_id=${encodeURIComponent(clientId)}`,
+      apiUrl(
+        `/api/auth/oauth2/public-client?client_id=${encodeURIComponent(clientId)}`,
+      ),
       { credentials: "include" },
     )
       .then(async (res) => {
@@ -80,7 +83,7 @@ export function ConsentPage() {
     setError("");
     setPending(true);
     try {
-      const res = await fetch("/api/auth/oauth2/consent", {
+      const res = await fetch(apiUrl("/api/auth/oauth2/consent"), {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
