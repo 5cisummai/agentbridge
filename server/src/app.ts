@@ -45,6 +45,15 @@ export function createApp(deps: AppDeps): Hono {
 
   app.all("/api/auth/*", (c) => deps.auth.handler(c.req.raw));
 
+  // Better Auth's MCP plugin serves RFC 9728 metadata outside the auth
+  // base path. Forward both the root and resource-path-inserted forms.
+  app.all("/.well-known/oauth-protected-resource", (c) =>
+    deps.auth.handler(c.req.raw),
+  );
+  app.all("/.well-known/oauth-protected-resource/*", (c) =>
+    deps.auth.handler(c.req.raw),
+  );
+
   app.post("/v1/devices/enroll", async (c) => {
     const contentLength = Number(c.req.header("content-length") ?? 0);
     if (contentLength > MAX_ENROLLMENT_BODY_BYTES) {
