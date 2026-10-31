@@ -19,7 +19,7 @@ const envSchema = z.object({
     .optional(),
   /** Resend API key; omit (or leave empty) in local/dev to log verification links. */
   RESEND_API_KEY: z.string().optional(),
-  RESEND_FROM: z.string().default("agentbridge <onboarding@resend.dev>"),
+  RESEND_FROM: z.string().default("clithread <noreply@clithread.dev>"),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
   MAX_THREADS_PER_DEVICE: z.coerce.number().default(8),
   MAX_EVENTS_PER_THREAD: z.coerce.number().default(10_000),

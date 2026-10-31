@@ -8,7 +8,7 @@ labels: enhancement
 What is hard or missing today?
 
 **Proposal**
-What should agentbridge do instead?
+What should clithread do instead?
 
 **Alternatives considered**
 

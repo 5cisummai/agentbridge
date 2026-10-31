@@ -1,5 +1,5 @@
 import { createInsufficientScopeError } from "better-auth/oauth2";
-import { AGENTBRIDGE_SCOPES, hasScope, subjectFromClaims } from "./scopes.js";
+import { CLITHREAD_SCOPES, hasScope, subjectFromClaims } from "./scopes.js";
 
 export type ToolAuth = {
   userId: string;
@@ -32,4 +32,4 @@ export function mcpTextResult(data: unknown) {
   };
 }
 
-export { AGENTBRIDGE_SCOPES };
+export { CLITHREAD_SCOPES };

@@ -2,14 +2,14 @@ import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import { requireMcpAuth } from "@better-auth/mcp";
 import type { Auth } from "../auth/index.js";
 import type { AppDeps } from "../app.js";
-import { registerAgentbridgeTools } from "./register-tools.js";
+import { registerClithreadTools } from "./register-tools.js";
 import { toolAuthFromClaims } from "./tool-auth.js";
 
 export function createProtectedMcpHandler(deps: AppDeps & { auth: Auth }) {
   const mcpCore = createMcpHandler(
     ({ authInfo }) => {
       const server = new McpServer({
-        name: "agentbridge",
+        name: "clithread",
         version: "0.1.0",
       });
 
@@ -17,7 +17,7 @@ export function createProtectedMcpHandler(deps: AppDeps & { auth: Auth }) {
         authInfo?.extra as { claims?: Record<string, unknown> } | undefined
       )?.claims;
       if (claims) {
-        registerAgentbridgeTools(
+        registerClithreadTools(
           server,
           deps,
           toolAuthFromClaims(claims as Record<string, unknown>),

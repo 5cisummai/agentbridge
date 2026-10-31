@@ -16,7 +16,7 @@ import {
 } from "../services/thread-events.js";
 import { resolveApprovalTimeouts } from "../services/approval-timeout.js";
 import {
-  AGENTBRIDGE_SCOPES,
+  CLITHREAD_SCOPES,
   mcpTextResult,
   requireScopes,
   type ToolAuth,
@@ -27,7 +27,7 @@ const deviceIdShape = {
   device_name: z.string().optional(),
 };
 
-export function registerAgentbridgeTools(
+export function registerClithreadTools(
   server: McpServer,
   deps: AppDeps & { auth: Auth },
   toolAuth: ToolAuth,
@@ -55,7 +55,7 @@ export function registerAgentbridgeTools(
       inputSchema: {},
     },
     async () => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.devices);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.devices);
       const rows = await db
         .select()
         .from(devices)
@@ -80,7 +80,7 @@ export function registerAgentbridgeTools(
       },
     },
     async ({ device_id }) => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.devices);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.devices);
       const device = await getDeviceForUser(db, userId, device_id);
       if (!device) {
         return mcpTextResult({ error: "device_not_found" });
@@ -112,7 +112,7 @@ export function registerAgentbridgeTools(
       },
     },
     async (input) => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.threads);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.threads);
       const resolved = await resolveDeviceId(db, userId, input);
       if (!resolved.ok) {
         return mcpTextResult(resolved);
@@ -188,7 +188,7 @@ export function registerAgentbridgeTools(
       },
     },
     async ({ thread_id, input }) => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.threads);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.threads);
       const [thread] = await db
         .select()
         .from(threads)
@@ -211,7 +211,7 @@ export function registerAgentbridgeTools(
       },
     },
     async ({ thread_id }) => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.threads);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.threads);
       const [thread] = await db
         .select()
         .from(threads)
@@ -244,7 +244,7 @@ export function registerAgentbridgeTools(
       },
     },
     async ({ thread_id }) => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.threads);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.threads);
       const [thread] = await db
         .select()
         .from(threads)
@@ -276,7 +276,7 @@ export function registerAgentbridgeTools(
       },
     },
     async (input) => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.threads);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.threads);
       const conditions = [eq(threads.ownerUserId, userId)];
       if (input.device_id) {
         conditions.push(eq(threads.deviceId, input.device_id));
@@ -304,7 +304,7 @@ export function registerAgentbridgeTools(
       },
     },
     async ({ thread_id, after_seq, include_raw }) => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.threads);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.threads);
       const [thread] = await db
         .select()
         .from(threads)
@@ -351,7 +351,7 @@ export function registerAgentbridgeTools(
       inputSchema: deviceIdShape,
     },
     async (input) =>
-      forwardToDevice(AGENTBRIDGE_SCOPES.profiles, input, "profile.list", {}),
+      forwardToDevice(CLITHREAD_SCOPES.profiles, input, "profile.list", {}),
   );
 
   server.registerTool(
@@ -364,7 +364,7 @@ export function registerAgentbridgeTools(
       },
     },
     async (input) =>
-      forwardToDevice(AGENTBRIDGE_SCOPES.profiles, input, "profile.upsert", {
+      forwardToDevice(CLITHREAD_SCOPES.profiles, input, "profile.upsert", {
         profile: input.profile,
       }),
   );
@@ -379,7 +379,7 @@ export function registerAgentbridgeTools(
       },
     },
     async (input) =>
-      forwardToDevice(AGENTBRIDGE_SCOPES.profiles, input, "profile.delete", {
+      forwardToDevice(CLITHREAD_SCOPES.profiles, input, "profile.delete", {
         profile_id: input.profile_id,
       }),
   );
@@ -391,7 +391,7 @@ export function registerAgentbridgeTools(
       inputSchema: {},
     },
     async () => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.approvals);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.approvals);
       await resolveApprovalTimeouts(deps);
       const rows = await db
         .select({
@@ -427,7 +427,7 @@ export function registerAgentbridgeTools(
       },
     },
     async ({ approval_id, decision, note }) => {
-      requireScopes(toolAuth, AGENTBRIDGE_SCOPES.approvals);
+      requireScopes(toolAuth, CLITHREAD_SCOPES.approvals);
       const [row] = await db
         .select({ approval: approvals, thread: threads })
         .from(approvals)
@@ -462,7 +462,7 @@ export function registerAgentbridgeTools(
     },
     async (input) =>
       forwardToDevice(
-        AGENTBRIDGE_SCOPES.devices,
+        CLITHREAD_SCOPES.devices,
         input,
         "workspace.list_roots",
         {},
@@ -479,7 +479,7 @@ export function registerAgentbridgeTools(
       },
     },
     async (input) =>
-      forwardToDevice(AGENTBRIDGE_SCOPES.admin, input, "workspace.add_root", {
+      forwardToDevice(CLITHREAD_SCOPES.admin, input, "workspace.add_root", {
         path: input.path,
       }),
   );
@@ -494,13 +494,8 @@ export function registerAgentbridgeTools(
       },
     },
     async (input) =>
-      forwardToDevice(
-        AGENTBRIDGE_SCOPES.admin,
-        input,
-        "workspace.remove_root",
-        {
-          path: input.path,
-        },
-      ),
+      forwardToDevice(CLITHREAD_SCOPES.admin, input, "workspace.remove_root", {
+        path: input.path,
+      }),
   );
 }

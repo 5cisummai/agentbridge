@@ -1,5 +1,5 @@
-use agentbridge_runner::db::Db;
-use agentbridge_runner::profiles::{ProfileUpsert, Profiles};
+use clithread_runner::db::Db;
+use clithread_runner::profiles::{ProfileUpsert, Profiles};
 
 #[test]
 fn upsert_rejects_env_over_mcp() {

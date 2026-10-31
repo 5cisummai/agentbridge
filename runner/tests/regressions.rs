@@ -1,4 +1,4 @@
-use agentbridge_runner::{
+use clithread_runner::{
     adapters::adapter_for_name, db::Db, events::EventSender, protocol::ThreadEventParams,
 };
 use serde_json::json;
@@ -81,7 +81,7 @@ fn replay_is_shared_acknowledged_and_overflow_is_observable() {
 #[cfg(unix)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn natural_exit_and_kill_release_slots_and_flush_output() {
-    use agentbridge_runner::{
+    use clithread_runner::{
         approvals::ApprovalState,
         profiles::{Profile, Profiles},
         protocol::ThreadSpawnParams,
@@ -167,7 +167,7 @@ async fn natural_exit_and_kill_release_slots_and_flush_output() {
 
 #[test]
 fn local_approval_timeout_is_fail_closed_and_idempotent() {
-    let state = agentbridge_runner::approvals::ApprovalState::default();
+    let state = clithread_runner::approvals::ApprovalState::default();
     state.register("a".into(), "t".into(), "Allow? [y/n]".into());
     assert!(!state.expire_thread("t", std::time::Instant::now()));
     assert!(state.expire_thread(

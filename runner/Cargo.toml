@@ -1,13 +1,13 @@
 [package]
-name = "agentbridge-runner"
+name = "clithread-runner"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.82"
-description = "agentbridge device runner: PTY threads, profiles, outbound WSS to gateway"
+description = "clithread device runner: PTY threads, profiles, outbound WSS to gateway"
 license = "MIT"
 
 [[bin]]
-name = "agentbridge"
+name = "clithread"
 path = "src/main.rs"
 
 [dependencies]

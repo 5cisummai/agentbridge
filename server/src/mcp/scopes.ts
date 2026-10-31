@@ -1,4 +1,5 @@
-export const AGENTBRIDGE_SCOPES = {
+// Scope strings remain stable for compatibility with existing OAuth clients.
+export const CLITHREAD_SCOPES = {
   devices: "agentbridge:devices",
   threads: "agentbridge:threads",
   profiles: "agentbridge:profiles",
@@ -6,8 +7,8 @@ export const AGENTBRIDGE_SCOPES = {
   admin: "agentbridge:admin",
 } as const;
 
-export type AgentbridgeScope =
-  (typeof AGENTBRIDGE_SCOPES)[keyof typeof AGENTBRIDGE_SCOPES];
+export type ClithreadScope =
+  (typeof CLITHREAD_SCOPES)[keyof typeof CLITHREAD_SCOPES];
 
 export function parseScopeClaim(scope: unknown): Set<string> {
   if (typeof scope === "string") {

@@ -1,5 +1,5 @@
 {
-  "name": "agentbridge",
+  "name": "clithread",
   "version": "0.1.0",
   "private": true,
   "description": "MCP relay for remote CLI threads — monorepo root tooling",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Mock agentbridge runner for local gateway testing.
+ * Mock clithread runner for local gateway testing.
  * Implements minimal JSON-RPC over WebSocket.
  */
 import WebSocket from "ws";

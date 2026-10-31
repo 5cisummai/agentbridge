@@ -121,7 +121,7 @@ export function ConsentPage() {
           <p className="text-sm text-muted-foreground">
             {loadingClient
               ? "Loading client details…"
-              : `${displayName} wants to access agentbridge on your account.`}
+              : `${displayName} wants to access clithread on your account.`}
           </p>
         </div>
 

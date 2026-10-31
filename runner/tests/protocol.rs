@@ -1,6 +1,4 @@
-use agentbridge_runner::protocol::{
-    DeviceHelloParams, JsonRpcRequest, RequestId, ThreadEventParams,
-};
+use clithread_runner::protocol::{DeviceHelloParams, JsonRpcRequest, RequestId, ThreadEventParams};
 use serde_json::json;
 
 #[test]

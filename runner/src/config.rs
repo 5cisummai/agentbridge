@@ -51,7 +51,9 @@ impl Config {
         }
         let raw = fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
         let mut cfg: Config = toml::from_str(&raw).unwrap_or_else(|_| Self::default());
-        if let Ok(url) = std::env::var("AGENTBRIDGE_GATEWAY_URL") {
+        if let Ok(url) = std::env::var("CLITHREAD_GATEWAY_URL")
+            .or_else(|_| std::env::var("AGENTBRIDGE_GATEWAY_URL"))
+        {
             cfg.gateway_url = url;
         }
         Ok(cfg)

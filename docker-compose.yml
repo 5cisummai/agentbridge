@@ -33,7 +33,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION: ${ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION:-false}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: ${RESEND_FROM:-agentbridge <onboarding@resend.dev>}
+      RESEND_FROM: ${RESEND_FROM:-clithread <noreply@clithread.dev>}
     depends_on:
       postgres:
         condition: service_healthy

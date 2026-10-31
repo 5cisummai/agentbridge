@@ -142,7 +142,7 @@ fn default_device_name() -> String {
     hostname::get()
         .ok()
         .and_then(|h| h.into_string().ok())
-        .unwrap_or_else(|| "agentbridge-device".into())
+        .unwrap_or_else(|| "clithread-device".into())
 }
 
 fn capabilities() -> serde_json::Value {

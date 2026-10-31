@@ -18,16 +18,16 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            asset_name: agentbridge-linux-x86_64
+            asset_name: clithread-linux-x86_64
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            asset_name: agentbridge-linux-aarch64
+            asset_name: clithread-linux-aarch64
           - os: macos-14
             target: aarch64-apple-darwin
-            asset_name: agentbridge-darwin-aarch64
+            asset_name: clithread-darwin-aarch64
           - os: macos-14
             target: x86_64-apple-darwin
-            asset_name: agentbridge-darwin-x86_64
+            asset_name: clithread-darwin-x86_64
 
     defaults:
       run:
@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p ../release-assets
-          cp "target/${{ matrix.target }}/release/agentbridge" \
+          cp "target/${{ matrix.target }}/release/clithread" \
             "../release-assets/${{ matrix.asset_name }}"
           chmod 0755 "../release-assets/${{ matrix.asset_name }}"
           strip "../release-assets/${{ matrix.asset_name }}"
@@ -86,12 +86,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-assets
-          pattern: agentbridge-*
+          pattern: clithread-*
           merge-multiple: true
 
       - name: Generate checksums
         working-directory: release-assets
-        run: sha256sum agentbridge-* > SHA256SUMS
+        run: sha256sum clithread-* > SHA256SUMS
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -100,5 +100,5 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
-            release-assets/agentbridge-*
+            release-assets/clithread-*
             release-assets/SHA256SUMS

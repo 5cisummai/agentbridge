@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="${AGENTBRIDGE_VERSION:-0.1.0}"
-REPO="${AGENTBRIDGE_REPO:-5cisummai/agentbridge}"
+VERSION="${CLITHREAD_VERSION:-${AGENTBRIDGE_VERSION:-0.1.0}}"
+REPO="${CLITHREAD_REPO:-${AGENTBRIDGE_REPO:-5cisummai/clithread}}"
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 ARCH="$(uname -m)"
 
@@ -23,10 +23,10 @@ case "$ARCH" in
     ;;
 esac
 
-BIN_NAME="agentbridge-${OS}-${ARCH}"
-BASE_URL="${AGENTBRIDGE_INSTALL_BASE:-https://github.com/${REPO}/releases/download/v${VERSION}}"
+BIN_NAME="clithread-${OS}-${ARCH}"
+BASE_URL="${CLITHREAD_INSTALL_BASE:-${AGENTBRIDGE_INSTALL_BASE:-https://github.com/${REPO}/releases/download/v${VERSION}}}"
 URL="${BASE_URL%/}/${BIN_NAME}"
-DEST="${AGENTBRIDGE_INSTALL_DIR:-$HOME/.local/bin}"
+DEST="${CLITHREAD_INSTALL_DIR:-${AGENTBRIDGE_INSTALL_DIR:-$HOME/.local/bin}}"
 TMP_FILE="$(mktemp)"
 trap 'rm -f "$TMP_FILE"' EXIT
 
@@ -35,11 +35,11 @@ mkdir -p "$DEST"
 echo "Downloading ${URL}"
 if ! curl --fail --location --silent --show-error --retry 3 "$URL" -o "$TMP_FILE"; then
   echo "Release asset not found. Install from source with:" >&2
-  echo "  cd runner && cargo install --path . --locked" >&2
+    echo "  cd runner && cargo install --path . --locked" >&2
   exit 1
 fi
 
-if [ "${AGENTBRIDGE_VERIFY:-0}" = "1" ]; then
+if [ "${CLITHREAD_VERIFY:-${AGENTBRIDGE_VERIFY:-0}}" = "1" ]; then
   CHECKSUMS_FILE="$(mktemp)"
   trap 'rm -f "$TMP_FILE" "$CHECKSUMS_FILE"' EXIT
   CHECKSUMS_URL="${BASE_URL%/}/SHA256SUMS"
@@ -57,7 +57,7 @@ if [ "${AGENTBRIDGE_VERIFY:-0}" = "1" ]; then
   elif command -v shasum >/dev/null 2>&1; then
     ACTUAL="$(shasum -a 256 "$TMP_FILE" | awk '{ print $1 }')"
   else
-    echo "AGENTBRIDGE_VERIFY=1 requires sha256sum or shasum" >&2
+    echo "CLITHREAD_VERIFY=1 requires sha256sum or shasum" >&2
     exit 1
   fi
 
@@ -67,12 +67,12 @@ if [ "${AGENTBRIDGE_VERIFY:-0}" = "1" ]; then
   fi
 fi
 
-install -m 0755 "$TMP_FILE" "${DEST}/agentbridge"
-echo "Installed agentbridge ${VERSION} to ${DEST}/agentbridge"
+install -m 0755 "$TMP_FILE" "${DEST}/clithread"
+echo "Installed clithread ${VERSION} to ${DEST}/clithread"
 
 case ":${PATH:-}:" in
   *":${DEST}:"*) ;;
   *)
-    echo "Add ${DEST} to PATH to run agentbridge directly."
+    echo "Add ${DEST} to PATH to run clithread directly."
     ;;
 esac
