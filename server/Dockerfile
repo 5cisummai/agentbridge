@@ -21,9 +21,12 @@ CMD ["pnpm", "exec", "drizzle-kit", "push", "--force"]
 FROM base AS runner
 ENV NODE_ENV=production
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --prod --frozen-lockfile --config.dangerouslyAllowAllBuilds=true \
-  || pnpm install --prod --config.dangerouslyAllowAllBuilds=true
+# Keep drizzle-kit available for Railway pre-deploy schema push.
+RUN pnpm install --frozen-lockfile --config.dangerouslyAllowAllBuilds=true \
+  || pnpm install --config.dangerouslyAllowAllBuilds=true
 COPY --from=build /app/dist ./dist
 COPY drizzle ./drizzle
+COPY drizzle.config.ts ./
+COPY src/db ./src/db
 EXPOSE 8787
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "pnpm exec drizzle-kit push --force && node dist/index.js"]
