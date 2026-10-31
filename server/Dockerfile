@@ -21,6 +21,12 @@ COPY server/tsconfig.json server/drizzle.config.ts ./
 COPY server/src ./src
 RUN pnpm exec tsc
 
+FROM deps AS migrate
+COPY server/tsconfig.json server/drizzle.config.ts ./
+COPY server/src ./src
+COPY server/drizzle ./drizzle
+CMD ["pnpm", "exec", "drizzle-kit", "push", "--force"]
+
 FROM base AS runner
 ENV NODE_ENV=production
 ENV WEB_DIST=/app/public
