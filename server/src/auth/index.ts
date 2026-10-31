@@ -15,7 +15,9 @@ import { sendVerificationEmail } from "./email/send-verification.js";
 import { buildAuthRateLimit } from "./rate-limit.js";
 import { buildSocialProviders } from "./social-providers.js";
 
-export const AGENTBRIDGE_SCOPES = [
+// Keep the existing agentbridge scope identifiers stable for already-issued
+// tokens and enrolled clients while the product is rebranded to clithread.
+export const CLITHREAD_SCOPES = [
   "openid",
   "profile",
   "offline_access",
@@ -78,7 +80,7 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
         loginPage: "/sign-in",
         consentPage: "/consent",
         resource: env.MCP_RESOURCE,
-        scopes: [...AGENTBRIDGE_SCOPES],
+        scopes: [...CLITHREAD_SCOPES],
         allowDynamicClientRegistration: true,
         allowUnauthenticatedClientRegistration:
           env.NODE_ENV !== "production" ||
@@ -88,7 +90,7 @@ export function createAuth(env: Env, gatewayDb: GatewayDb) {
         resources: [
           {
             identifier: env.MCP_RESOURCE,
-            allowedScopes: [...AGENTBRIDGE_SCOPES],
+            allowedScopes: [...CLITHREAD_SCOPES],
           },
         ],
       }),

@@ -15,7 +15,7 @@ export function initOtel(env: Env): void {
       traceExporter: new OTLPTraceExporter({
         url: `${env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces`,
       }),
-      serviceName: "agentbridge-gateway",
+      serviceName: "clithread-gateway",
     });
     sdk.start();
     shutdownOtel = () => sdk.shutdown();

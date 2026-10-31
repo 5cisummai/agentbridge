@@ -5,7 +5,8 @@ import { hasScope } from "../src/mcp/scopes.js";
 
 function baseEnv() {
   return {
-    DATABASE_URL: "postgres://agentbridge:agentbridge@localhost:5432/agentbridge",
+    DATABASE_URL:
+      "postgres://agentbridge:agentbridge@localhost:5432/agentbridge",
     BETTER_AUTH_SECRET: "x".repeat(32),
     BETTER_AUTH_URL: "http://localhost:8787",
     MCP_RESOURCE: "http://localhost:8787/mcp",
@@ -33,9 +34,9 @@ describe("production security configuration", () => {
 describe("enrollment authorization and input", () => {
   it("requires the device enrollment scope", () => {
     expect(hasScope("openid profile", "agentbridge:devices")).toBe(false);
-    expect(
-      hasScope("openid agentbridge:devices", "agentbridge:devices"),
-    ).toBe(true);
+    expect(hasScope("openid agentbridge:devices", "agentbridge:devices")).toBe(
+      true,
+    );
   });
 
   it("rejects empty, oversized, and malformed enrollment data", () => {

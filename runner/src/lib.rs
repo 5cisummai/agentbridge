@@ -13,6 +13,7 @@ pub mod rpc;
 pub mod threads;
 pub mod ws;
 
+// Keep the OAuth client id stable so existing enrolled devices can upgrade.
 pub const RUNNER_OAUTH_CLIENT_ID: &str = "agentbridge-runner";
 pub const DEVICE_CODE_GRANT: &str = "urn:ietf:params:oauth:grant-type:device_code";
 pub const MAX_THREADS: usize = 8;

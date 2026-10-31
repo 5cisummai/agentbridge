@@ -1,4 +1,4 @@
-# agentbridge web
+# clithread web
 
 React (Vite) OAuth UI for the gateway: `/`, `/sign-in`, `/sign-up`, `/consent`, `/device`.
 

@@ -1,6 +1,6 @@
-# Contributing to agentbridge
+# Contributing to clithread
 
-Thanks for helping improve agentbridge.
+Thanks for helping improve clithread.
 
 ## Ground rules
 
@@ -64,9 +64,9 @@ cargo build
 6. Smoke-test the installer on a supported platform:
 
    ```bash
-   AGENTBRIDGE_VERSION=X.Y.Z bash runner/scripts/install.sh
-   export PATH="${AGENTBRIDGE_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
-   agentbridge --help
+   CLITHREAD_VERSION=X.Y.Z bash runner/scripts/install.sh
+   export PATH="${CLITHREAD_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
+   clithread --help
    ```
 
 ## Pull requests

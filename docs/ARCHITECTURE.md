@@ -1,16 +1,16 @@
-# agentbridge — Architecture & Decisions
+# clithread — Architecture & Decisions
 
-This document is the source of truth for product and technical decisions for **agentbridge**: a bridge that lets MCP clients (coding agents and IDEs) remotely control long-lived CLI “threads” on user devices through a relay gateway.
+This document is the source of truth for product and technical decisions for **clithread**: a bridge that lets MCP clients (coding agents and IDEs) remotely control long-lived CLI “threads” on user devices through a relay gateway.
 
-Project name: **agentbridge**.
+Project name: **clithread**.
 
 ---
 
 ## 1. Product intent
 
-**agentbridge** is a coding-agent bridge for agents:
+**clithread** is a coding-agent bridge for agents:
 
-1. An **MCP client** (Cursor, Claude Desktop, another orchestrator) calls tools on the **agentbridge gateway**.
+1. An **MCP client** (Cursor, Claude Desktop, another orchestrator) calls tools on the **clithread gateway**.
 2. The gateway authenticates the caller, routes work to a registered **device**, and speaks **WebSocket + JSON-RPC** to a **Rust runner** on that device.
 3. The runner spawns **PTY-backed** processes for configured CLIs (Codex, Claude Code, Cursor agent, or custom profiles) and streams events back.
 4. Other agents do not need to know argv details of each CLI—they use **thread IDs**, **profiles**, and a **normalized event stream**.
@@ -27,7 +27,7 @@ flowchart TB
     C1["Cursor / Claude Desktop / custom agent"]
   end
 
-  subgraph Gateway["agentbridge gateway — TypeScript"]
+  subgraph Gateway["clithread gateway — TypeScript"]
     MCP["MCP HTTP + OAuth scopes<br/>Better Auth"]
     Tools["Tools: threads · devices · profiles · approvals"]
     Hub["WebSocket JSON-RPC hub"]
@@ -42,7 +42,7 @@ flowchart TB
   end
 
   subgraph Device["Device"]
-    Runner["agentbridge runner — Rust<br/>outbound WSS only"]
+  Runner["clithread runner — Rust<br/>outbound WSS only"]
     SQLite[(SQLite profiles)]
     PTY["PTY thread manager<br/>cwd allowlist"]
     CLIs["Codex · Claude · Cursor agent · custom"]
@@ -141,7 +141,7 @@ Reconnect: gateway may drop; **runner keeps threads alive**. Thread lifetime is 
 | Database (gateway)  | **Postgres** (required for Better Auth, devices, approvals, audit)                    |
 | Database (runner)   | **SQLite** (profiles and local runner state)                                          |
 
-Self-host compose typically: `agentbridge` container + **Postgres** (and optional OTEL collector). Prefer Postgres as a sibling service even when the app is “one image”; do not put production multi-user auth in SQLite on the gateway.
+Self-host compose typically: `clithread` container + **Postgres** (and optional OTEL collector). Prefer Postgres as a sibling service even when the app is “one image”; do not put production multi-user auth in SQLite on the gateway.
 
 ### 4.3 Stack split
 
@@ -379,7 +379,7 @@ Every mutating tool that targets a machine resolves `device_id` (explicit or def
 ## 11. Suggested repo layout (when scaffolding)
 
 ```text
-agentbridge/   # or this repo renamed
+clithread/     # or this repo renamed
   apps/
     gateway/          # TypeScript: Better Auth, MCP, WS hub, Docker
   crates/
@@ -419,7 +419,7 @@ agentbridge/   # or this repo renamed
 
 | Term                | Meaning                                        |
 | ------------------- | ---------------------------------------------- |
-| **Gateway / relay** | Public or self-hosted agentbridge TS service   |
+| **Gateway / relay** | Public or self-hosted clithread TS service     |
 | **Runner**          | Rust agent on a device                         |
 | **Device**          | One runner enrollment; identified by UUID      |
 | **Profile**         | Named CLI spawn template on a device           |

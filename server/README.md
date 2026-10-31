@@ -1,4 +1,4 @@
-# agentbridge gateway
+# clithread gateway
 
 TypeScript relay: Better Auth (OAuth 2.1 + MCP 2026-07-28), Postgres, WebSocket JSON-RPC hub, MCP tools.
 
@@ -25,12 +25,12 @@ The gateway serves the built SPA from `../web/dist` (or `WEB_DIST`). Rebuild the
 
 Copy `cp .env.example .env`. Validated in `src/env.ts`.
 
-| Required | Description |
-|----------|-------------|
-| `DATABASE_URL` | Postgres |
-| `BETTER_AUTH_SECRET` | Session signing (min 32 chars) |
-| `BETTER_AUTH_URL` | Public gateway origin |
-| `MCP_RESOURCE` | MCP OAuth resource URL (typically `{BETTER_AUTH_URL}/mcp`) |
+| Required             | Description                                                |
+| -------------------- | ---------------------------------------------------------- |
+| `DATABASE_URL`       | Postgres                                                   |
+| `BETTER_AUTH_SECRET` | Session signing (min 32 chars)                             |
+| `BETTER_AUTH_URL`    | Public gateway origin                                      |
+| `MCP_RESOURCE`       | MCP OAuth resource URL (typically `{BETTER_AUTH_URL}/mcp`) |
 
 Optional: `GITHUB_*`, `GOOGLE_*`, `RESEND_API_KEY`, `RESEND_FROM`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `MAX_THREADS_PER_DEVICE`, `MAX_EVENTS_PER_THREAD`, `APPROVAL_TIMEOUT_MS`, `PORT`, `NODE_ENV`. Unset `RESEND_API_KEY` → verification links logged to stdout.
 

@@ -1,5 +1,5 @@
-use agentbridge_runner::DEVICE_CODE_GRANT;
-use agentbridge_runner::RUNNER_OAUTH_CLIENT_ID;
+use clithread_runner::DEVICE_CODE_GRANT;
+use clithread_runner::RUNNER_OAUTH_CLIENT_ID;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -40,13 +40,13 @@ async fn enroll_flow_mock() {
         .await;
 
     let dir = tempfile::tempdir().unwrap();
-    std::env::set_var("AGENTBRIDGE_TEST_DIR", dir.path());
+    std::env::set_var("CLITHREAD_TEST_DIR", dir.path());
 
-    agentbridge_runner::enroll::oauth::run_enroll(Some(base.clone()), Some("test".into()))
+    clithread_runner::enroll::oauth::run_enroll(Some(base.clone()), Some("test".into()))
         .await
         .unwrap();
 
-    let cred = agentbridge_runner::enroll::DeviceCredential::load()
+    let cred = clithread_runner::enroll::DeviceCredential::load()
         .unwrap()
         .unwrap();
     assert_eq!(cred.device_id, "00000000-0000-4000-8000-000000000001");

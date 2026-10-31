@@ -6,7 +6,7 @@ This project is early and moving quickly. Security fixes land on the default bra
 
 ## What this software does
 
-agentbridge relays authenticated MCP clients to a **device runner** that can spawn PTY-backed CLI processes. Treat a compromised gateway, leaked device credential, or over-scoped OAuth token as **remote code execution on the enrolled device**.
+clithread relays authenticated MCP clients to a **device runner** that can spawn PTY-backed CLI processes. Treat a compromised gateway, leaked device credential, or over-scoped OAuth token as **remote code execution on the enrolled device**.
 
 ## Deploying safely
 

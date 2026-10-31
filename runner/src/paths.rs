@@ -2,24 +2,38 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
-pub const APP_QUALIFIER: &str = "agentbridge";
+pub const APP_QUALIFIER: &str = "clithread";
+const LEGACY_APP_QUALIFIER: &str = "agentbridge";
+
+fn project_dirs() -> Result<directories::ProjectDirs> {
+    let current = directories::ProjectDirs::from("", "", APP_QUALIFIER)
+        .context("could not resolve clithread config directory")?;
+    let legacy = directories::ProjectDirs::from("", "", LEGACY_APP_QUALIFIER)
+        .context("could not resolve legacy config directory")?;
+
+    if current.config_dir().exists() || current.data_dir().exists() {
+        Ok(current)
+    } else {
+        Ok(legacy)
+    }
+}
 
 pub fn config_dir() -> Result<PathBuf> {
-    if let Ok(t) = std::env::var("AGENTBRIDGE_TEST_DIR") {
+    if let Ok(t) =
+        std::env::var("CLITHREAD_TEST_DIR").or_else(|_| std::env::var("AGENTBRIDGE_TEST_DIR"))
+    {
         return Ok(PathBuf::from(&t).join("config"));
     }
-    directories::ProjectDirs::from("", "", APP_QUALIFIER)
-        .map(|d| d.config_dir().to_path_buf())
-        .context("could not resolve config directory")
+    Ok(project_dirs()?.config_dir().to_path_buf())
 }
 
 pub fn data_dir() -> Result<PathBuf> {
-    if let Ok(t) = std::env::var("AGENTBRIDGE_TEST_DIR") {
+    if let Ok(t) =
+        std::env::var("CLITHREAD_TEST_DIR").or_else(|_| std::env::var("AGENTBRIDGE_TEST_DIR"))
+    {
         return Ok(PathBuf::from(&t).join("data"));
     }
-    directories::ProjectDirs::from("", "", APP_QUALIFIER)
-        .map(|d| d.data_dir().to_path_buf())
-        .context("could not resolve data directory")
+    Ok(project_dirs()?.data_dir().to_path_buf())
 }
 
 pub fn config_file() -> Result<PathBuf> {

@@ -5,10 +5,7 @@ import type { GatewayDb } from "./db/client.js";
 import type { Env } from "./env.js";
 import type { HubRegistry } from "./hub/registry.js";
 import { enabledSocialProviders } from "./auth/social-providers.js";
-import {
-  enrollDevice,
-  MAX_ENROLLMENT_BODY_BYTES,
-} from "./enroll/exchange.js";
+import { enrollDevice, MAX_ENROLLMENT_BODY_BYTES } from "./enroll/exchange.js";
 import { createProtectedMcpHandler } from "./mcp/handler.js";
 import { mountWebApp } from "./web.js";
 

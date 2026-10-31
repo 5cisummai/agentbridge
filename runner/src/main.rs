@@ -4,18 +4,18 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
-use agentbridge_runner::approvals::ApprovalState;
-use agentbridge_runner::config::Config;
-use agentbridge_runner::db::Db;
-use agentbridge_runner::enroll::oauth::run_enroll;
-use agentbridge_runner::enroll::DeviceCredential;
-use agentbridge_runner::otel;
-use agentbridge_runner::profiles::Profiles;
-use agentbridge_runner::threads::ThreadManager;
-use agentbridge_runner::ws;
+use clithread_runner::approvals::ApprovalState;
+use clithread_runner::config::Config;
+use clithread_runner::db::Db;
+use clithread_runner::enroll::oauth::run_enroll;
+use clithread_runner::enroll::DeviceCredential;
+use clithread_runner::otel;
+use clithread_runner::profiles::Profiles;
+use clithread_runner::threads::ThreadManager;
+use clithread_runner::ws;
 
 #[derive(Parser)]
-#[command(name = "agentbridge", about = "agentbridge device runner")]
+#[command(name = "clithread", about = "clithread device runner")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -24,7 +24,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Enroll {
-        #[arg(long, env = "AGENTBRIDGE_GATEWAY_URL")]
+        #[arg(long, env = "CLITHREAD_GATEWAY_URL")]
         gateway: Option<String>,
         #[arg(long)]
         name: Option<String>,
@@ -58,7 +58,7 @@ enum ProfilesCmd {
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::from_default_env().add_directive("agentbridge_runner=info".parse()?),
+            EnvFilter::from_default_env().add_directive("clithread_runner=info".parse()?),
         )
         .init();
     otel::init_from_env();
@@ -74,13 +74,13 @@ async fn main() -> Result<()> {
 }
 
 async fn run_daemon() -> Result<()> {
-    let cred = DeviceCredential::load()?.context("not enrolled: run `agentbridge enroll` first")?;
+    let cred = DeviceCredential::load()?.context("not enrolled: run `clithread enroll` first")?;
     let cfg = Config::load()?;
     let db = Db::open()?;
     db.seed_home_if_empty()?;
     db.seed_default_profiles()?;
     let profiles = Arc::new(Profiles::new(db));
-    let event_tx = agentbridge_runner::events::EventSender::default();
+    let event_tx = clithread_runner::events::EventSender::default();
     let event_rx = event_tx.clone();
     let approval_state = Arc::new(ApprovalState::new());
     let threads = Arc::new(ThreadManager::new(

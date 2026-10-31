@@ -1,4 +1,4 @@
-# agentbridge setup guide
+# clithread setup guide
 
 Step-by-step instructions for running the gateway, web UI, runner, and MCP clients locally or in production.
 
@@ -51,19 +51,19 @@ If you put the gateway behind a reverse proxy or TLS terminator, set `BETTER_AUT
 
 ### Optional (gateway)
 
-| Variable                                    | Default                               | Purpose                                                                                                                                                |
-| ------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PORT`                                      | `8787`                                | HTTP listen port                                                                                                                                       |
-| `NODE_ENV`                                  | `development`                         | `development` \| `production` \| `test`                                                                                                                |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | (unset)                               | GitHub OAuth on sign-in. Omit both to hide GitHub.                                                                                                     |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | (unset)                               | Google OAuth. Omit both to hide Google.                                                                                                                |
-| `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION` | `false` in production                 | Public MCP client dynamic registration. Keep disabled unless your client ecosystem requires it; local development enables it automatically.            |
-| `RESEND_API_KEY`                            | (unset)                               | Sends real verification emails via Resend. Required when `NODE_ENV=production`; local development can print verification links to the gateway console. |
-| `RESEND_FROM`                               | `agentbridge <onboarding@resend.dev>` | From address when using Resend                                                                                                                         |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`               | (unset)                               | OpenTelemetry trace export (HTTP)                                                                                                                      |
-| `MAX_THREADS_PER_DEVICE`                    | `8`                                   | Hub limit per device                                                                                                                                   |
-| `MAX_EVENTS_PER_THREAD`                     | `10000`                               | Event retention cap per thread                                                                                                                         |
-| `APPROVAL_TIMEOUT_MS`                       | `900000` (15 min)                     | Approval expiry                                                                                                                                        |
+| Variable                                    | Default                             | Purpose                                                                                                                                                |
+| ------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PORT`                                      | `8787`                              | HTTP listen port                                                                                                                                       |
+| `NODE_ENV`                                  | `development`                       | `development` \| `production` \| `test`                                                                                                                |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | (unset)                             | GitHub OAuth on sign-in. Omit both to hide GitHub.                                                                                                     |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | (unset)                             | Google OAuth. Omit both to hide Google.                                                                                                                |
+| `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION` | `false` in production               | Public MCP client dynamic registration. Keep disabled unless your client ecosystem requires it; local development enables it automatically.            |
+| `RESEND_API_KEY`                            | (unset)                             | Sends real verification emails via Resend. Required when `NODE_ENV=production`; local development can print verification links to the gateway console. |
+| `RESEND_FROM`                               | `clithread <noreply@clithread.dev>` | From address when using Resend                                                                                                                         |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`               | (unset)                             | OpenTelemetry trace export (HTTP)                                                                                                                      |
+| `MAX_THREADS_PER_DEVICE`                    | `8`                                 | Hub limit per device                                                                                                                                   |
+| `MAX_EVENTS_PER_THREAD`                     | `10000`                             | Event retention cap per thread                                                                                                                         |
+| `APPROVAL_TIMEOUT_MS`                       | `900000` (15 min)                   | Approval expiry                                                                                                                                        |
 
 ### Rate limiting
 
@@ -152,13 +152,13 @@ the pinned runner release with the command below after the `v0.1.0` GitHub
 release is published:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/5cisummai/agentbridge/v0.1.0/runner/scripts/install.sh | bash
-export PATH="${AGENTBRIDGE_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
+curl -fsSL https://raw.githubusercontent.com/5cisummai/clithread/v0.1.0/runner/scripts/install.sh | bash
+export PATH="${CLITHREAD_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
 ```
 
-The installer places `agentbridge` in `~/.local/bin`. Set
-`AGENTBRIDGE_INSTALL_DIR` to change that location, or set
-`AGENTBRIDGE_VERIFY=1` to verify the downloaded binary against the release
+The installer places `clithread` in `~/.local/bin`. Set
+`CLITHREAD_INSTALL_DIR` to change that location, or set
+`CLITHREAD_VERIFY=1` to verify the downloaded binary against the release
 checksums.
 
 For local development or an unsupported platform, build from source:
@@ -166,7 +166,7 @@ For local development or an unsupported platform, build from source:
 ```bash
 cd runner
 cargo build --release
-export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787   # overrides config file
+export CLITHREAD_GATEWAY_URL=http://localhost:8787   # overrides config file
 ```
 
 ### Gateway URL and enrollment
@@ -174,32 +174,35 @@ export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787   # overrides config file
 The runner must target the same public gateway that you use in the browser for
 OAuth:
 
-If you built from source, replace `agentbridge` below with
-`./target/release/agentbridge`.
+If you built from source, replace `clithread` below with
+`./target/release/clithread`.
 
 ```bash
-export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787
-agentbridge enroll --name "$(hostname)"
+export CLITHREAD_GATEWAY_URL=http://localhost:8787
+clithread enroll --name "$(hostname)"
 ```
 
 `AGENTBRIDGE_GATEWAY_URL` overrides `gateway_url` in the runner config file for that process. Persisted config lives at:
 
-| OS    | Config                                                  | Device credential        | SQLite data                                               |
-| ----- | ------------------------------------------------------- | ------------------------ | --------------------------------------------------------- |
-| macOS | `~/Library/Application Support/agentbridge/config.toml` | `.../device.json` (0600) | `~/Library/Application Support/agentbridge/runner.sqlite` |
-| Linux | `$XDG_CONFIG_HOME/agentbridge/config.toml`              | `.../device.json`        | `$XDG_DATA_HOME/agentbridge/runner.sqlite`                |
+| OS    | Config                                                | Device credential        | SQLite data                                             |
+| ----- | ----------------------------------------------------- | ------------------------ | ------------------------------------------------------- |
+| macOS | `~/Library/Application Support/clithread/config.toml` | `.../device.json` (0600) | `~/Library/Application Support/clithread/runner.sqlite` |
+| Linux | `$XDG_CONFIG_HOME/clithread/config.toml`              | `.../device.json`        | `$XDG_DATA_HOME/clithread/runner.sqlite`                |
+
+Existing installations automatically continue using their legacy
+`agentbridge` data directory until a new `clithread` directory is created.
 
 ### Enroll flow
 
 1. CLI prints a **device code** and opens or points you to `{BETTER_AUTH_URL}/device`.
 2. Sign in as the user who should own the device.
 3. Approve the code in the browser.
-4. Runner stores `device_id` + secret in `device.json`. Enrollment requires the `agentbridge:devices` OAuth scope.
+4. Runner stores `device_id` + secret in `device.json`. Enrollment requires the legacy-compatible `agentbridge:devices` OAuth scope.
 
 ### Run the runner
 
 ```bash
-agentbridge run
+clithread run
 ```
 
 Connects to `{gateway}/ws` with `device.hello` using the enrolled credential.
@@ -216,22 +219,22 @@ Connects to `{gateway}/ws` with `device.hello` using the enrolled credential.
 
 | Variable                      | Purpose                                |
 | ----------------------------- | -------------------------------------- |
-| `AGENTBRIDGE_GATEWAY_URL`     | Overrides `gateway_url` for enroll/run |
+| `CLITHREAD_GATEWAY_URL`       | Overrides `gateway_url` for enroll/run |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional OTLP HTTP traces              |
-| `AGENTBRIDGE_TEST_DIR`        | Test-only; redirects config/data dirs  |
+| `CLITHREAD_TEST_DIR`          | Test-only; redirects config/data dirs  |
 
 ### CLI API keys (stay on the device)
 
 Secrets for Codex/Claude/etc. are **not** stored on the gateway. Set them in runner profiles:
 
 ```bash
-agentbridge profiles set-env codex OPENAI_API_KEY=sk-...
-agentbridge roots add /path/to/allowed/workspace
-agentbridge profiles list
-agentbridge status
+clithread profiles set-env codex OPENAI_API_KEY=sk-...
+clithread roots add /path/to/allowed/workspace
+clithread profiles list
+clithread status
 ```
 
-OAuth client id for enroll is fixed: **`agentbridge-runner`** (public native client, device-code grant). Its device-code token is explicitly scoped for enrollment.
+OAuth client id for enroll is fixed: **`agentbridge-runner`** (public native client, device-code grant) for compatibility with existing devices. Its device-code token is explicitly scoped for enrollment.
 
 ---
 

@@ -16,7 +16,10 @@ pub enum PolicyError {
     #[error("path is not a directory")]
     NotDirectory,
     #[error("cwd_not_allowed")]
-    NotAllowed { path: String, allowed_roots: Vec<RootLabel> },
+    NotAllowed {
+        path: String,
+        allowed_roots: Vec<RootLabel>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -26,7 +29,10 @@ pub struct RootLabel {
     pub label: Option<String>,
 }
 
-pub fn validate_cwd(cwd: &str, allowed_paths: &[(String, String, Option<String>)]) -> Result<PathBuf, PolicyError> {
+pub fn validate_cwd(
+    cwd: &str,
+    allowed_paths: &[(String, String, Option<String>)],
+) -> Result<PathBuf, PolicyError> {
     if cwd.contains('\0') {
         return Err(PolicyError::Invalid);
     }
@@ -48,9 +54,15 @@ pub fn validate_cwd(cwd: &str, allowed_paths: &[(String, String, Option<String>)
     let allowed: Vec<(PathBuf, RootLabel)> = allowed_paths
         .iter()
         .filter_map(|(id, path, label)| {
-            std::fs::canonicalize(path)
-                .ok()
-                .map(|p| (p, RootLabel { id: id.clone(), label: label.clone() }))
+            std::fs::canonicalize(path).ok().map(|p| {
+                (
+                    p,
+                    RootLabel {
+                        id: id.clone(),
+                        label: label.clone(),
+                    },
+                )
+            })
         })
         .collect();
 
@@ -63,10 +75,7 @@ pub fn validate_cwd(cwd: &str, allowed_paths: &[(String, String, Option<String>)
 
     Err(PolicyError::NotAllowed {
         path: resolved.to_string_lossy().into(),
-        allowed_roots: allowed
-            .into_iter()
-            .map(|(_, l)| l)
-            .collect(),
+        allowed_roots: allowed.into_iter().map(|(_, l)| l).collect(),
     })
 }
 
@@ -106,7 +115,10 @@ mod tests {
     #[test]
     fn rejects_parent_in_input() {
         let err = validate_cwd("/tmp/../etc", &[]).unwrap_err();
-        assert!(matches!(err, PolicyError::ParentComponent | PolicyError::NotFound));
+        assert!(matches!(
+            err,
+            PolicyError::ParentComponent | PolicyError::NotFound
+        ));
     }
 
     #[test]
@@ -135,11 +147,7 @@ mod tests {
         fs::create_dir_all(&sub).unwrap();
         let root_canon = fs::canonicalize(&root).unwrap();
         let sub_canon = fs::canonicalize(&sub).unwrap();
-        let roots = vec![(
-            "r1".into(),
-            root_canon.to_string_lossy().into(),
-            None,
-        )];
+        let roots = vec![("r1".into(), root_canon.to_string_lossy().into(), None)];
         let ok = validate_cwd(sub_canon.to_str().unwrap(), &roots).unwrap();
         assert_eq!(ok, sub_canon);
     }

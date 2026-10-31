@@ -28,9 +28,7 @@ async function socialSignIn(provider: "github" | "google") {
     body: JSON.stringify({
       provider,
       callbackURL: "/",
-      ...(query.has("sig")
-        ? { oauth_query: location.search.slice(1) }
-        : {}),
+      ...(query.has("sig") ? { oauth_query: location.search.slice(1) } : {}),
     }),
   });
   if (!res.ok) {

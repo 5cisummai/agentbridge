@@ -5,10 +5,16 @@ import { fileURLToPath } from "node:url";
 import type { Hono } from "hono";
 import { serveStatic } from "@hono/node-server/serve-static";
 
-const SPA_ROUTES = ["/", "/sign-in", "/sign-up", "/consent", "/device"] as const;
+const SPA_ROUTES = [
+  "/",
+  "/sign-in",
+  "/sign-up",
+  "/consent",
+  "/device",
+] as const;
 
 const MISSING_UI = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/><title>agentbridge</title></head>
+<html lang="en"><head><meta charset="utf-8"/><title>clithread</title></head>
 <body>
   <h1>Web UI not built</h1>
   <p>Run <code>pnpm --dir web build</code>, then restart the gateway.</p>

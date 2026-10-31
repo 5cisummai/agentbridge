@@ -35,7 +35,7 @@ async function main() {
     },
     (info) => {
       console.log(
-        `agentbridge gateway listening on http://localhost:${info.port}`,
+        `clithread gateway listening on http://localhost:${info.port}`,
       );
     },
   );

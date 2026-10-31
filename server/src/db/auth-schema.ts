@@ -62,7 +62,8 @@ export const verification = pgTable("verification", {
 
 /** Better Auth rate limit counters (when rateLimit.storage = "database"). */
 export const rateLimit = pgTable("rateLimit", {
-  key: text("key").primaryKey().notNull(),
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
   count: integer("count").notNull(),
   lastRequest: bigint("lastRequest", { mode: "number" }).notNull(),
 });

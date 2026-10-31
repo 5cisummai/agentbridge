@@ -1,6 +1,6 @@
-# agentbridge
+# clithread
 
-**agentbridge** lets MCP clients (coding agents and IDEs) remotely control long-lived CLI threads on user devices through a relay gateway.
+**clithread** lets MCP clients (coding agents and IDEs) remotely control long-lived CLI threads on user devices through a relay gateway.
 
 An MCP client talks to the **TypeScript gateway** (OAuth + MCP tools). The gateway routes work over WebSocket JSON-RPC to a **Rust runner** on a registered device. The runner spawns PTY-backed processes for configured CLIs (Codex, Claude Code, Cursor agent, or custom profiles) and streams a normalized event feed back.
 
@@ -63,19 +63,19 @@ The pinned installer below is available after the `v0.1.0` GitHub release is
 published. Until then, use the source-build fallback below.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/5cisummai/agentbridge/v0.1.0/runner/scripts/install.sh | bash
-export PATH="${AGENTBRIDGE_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
-export AGENTBRIDGE_GATEWAY_URL=http://localhost:8787
-agentbridge enroll --name "$(hostname)"
+curl -fsSL https://raw.githubusercontent.com/5cisummai/clithread/v0.1.0/runner/scripts/install.sh | bash
+export PATH="${CLITHREAD_INSTALL_DIR:-$HOME/.local/bin}:$PATH"
+export CLITHREAD_GATEWAY_URL=http://localhost:8787
+clithread enroll --name "$(hostname)"
 # Approve at http://localhost:8787/device
-agentbridge run
+clithread run
 ```
 
 Release binaries and `SHA256SUMS` are published on the
-[GitHub Releases page](https://github.com/5cisummai/agentbridge/releases).
+[GitHub Releases page](https://github.com/5cisummai/clithread/releases).
 
 For local development or platforms without a release asset, build from source with
-`cd runner && cargo build --release` and use `./target/release/agentbridge`.
+`cd runner && cargo build --release` and use `./target/release/clithread`.
 
 3. Point an MCP client at `MCP_RESOURCE` (`http://localhost:8787/mcp`) with OAuth. Scopes and client setup: [`docs/SETUP.md`](docs/SETUP.md).
 
@@ -96,7 +96,7 @@ Gateway-only: `cd server && pnpm lint`. Config lives in [`.prettierrc.json`](.pr
 
 ## Package note
 
-`server/package.json` sets `"private": true` so the gateway package is not published to npm by accident. Cloning and self-hosting this repo is intentional; publishing `@agentbridge/server` is not.
+`server/package.json` sets `"private": true` so the gateway package is not published to npm by accident. Cloning and self-hosting this repo is intentional; publishing `@clithread/server` is not.
 
 ## Security
 

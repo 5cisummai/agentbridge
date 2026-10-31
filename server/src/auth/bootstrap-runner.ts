@@ -26,11 +26,11 @@ export async function ensureRunnerOAuthClient(
     await db.insert(authSchema.oauthClient).values({
       id: randomUUID(),
       clientId: RUNNER_OAUTH_CLIENT_ID,
-      name: "agentbridge Runner",
+      name: "clithread Runner",
       tokenEndpointAuthMethod: "none",
       applicationType: "native",
       grantTypes: [...RUNNER_OAUTH_GRANTS],
-    scopes: ["openid", "profile", "offline_access", "agentbridge:devices"],
+      scopes: ["openid", "profile", "offline_access", "agentbridge:devices"],
       disabled: false,
       public: true,
       type: "native",
@@ -50,7 +50,7 @@ export async function ensureRunnerOAuthClient(
     .values({
       id: randomUUID(),
       identifier: env.MCP_RESOURCE,
-      name: "agentbridge MCP",
+      name: "clithread MCP",
       allowedScopes: [
         "openid",
         "profile",

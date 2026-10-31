@@ -89,7 +89,9 @@ impl Profiles {
 
     pub fn upsert_mcp(&self, profile: ProfileUpsert) -> Result<()> {
         if profile.env.is_some() {
-            return Err(anyhow!("env values are not allowed over MCP; use local set-env"));
+            return Err(anyhow!(
+                "env values are not allowed over MCP; use local set-env"
+            ));
         }
         self.upsert(Profile {
             id: profile.id,
@@ -156,10 +158,9 @@ impl Profiles {
 
     pub fn list_roots(&self) -> Result<Vec<(String, String, Option<String>)>> {
         self.with_conn(|conn| {
-            let mut stmt = conn.prepare("SELECT id, path, label FROM allowed_roots ORDER BY path")?;
-            let rows = stmt.query_map([], |row| {
-                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
-            })?;
+            let mut stmt =
+                conn.prepare("SELECT id, path, label FROM allowed_roots ORDER BY path")?;
+            let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?;
             rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
         })
     }

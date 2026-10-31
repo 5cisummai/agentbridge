@@ -68,7 +68,12 @@ impl JsonRpcResponse {
         }
     }
 
-    pub fn error(id: Option<RequestId>, code: i32, message: impl Into<String>, data: Option<Value>) -> Self {
+    pub fn error(
+        id: Option<RequestId>,
+        code: i32,
+        message: impl Into<String>,
+        data: Option<Value>,
+    ) -> Self {
         Self {
             jsonrpc: JSONRPC_VERSION.into(),
             id,
